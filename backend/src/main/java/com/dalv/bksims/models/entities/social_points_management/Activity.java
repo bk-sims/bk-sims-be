@@ -32,8 +32,10 @@ public class Activity {
     @Column(unique = true)
     private String title;
 
+    @Column(unique = true)
     private String bannerFileName;
 
+    @Column(unique = true)
     private String bannerFileUrl;
 
     private String description;
@@ -50,8 +52,10 @@ public class Activity {
 
     private int points;
 
+    @Column(unique = true)
     private String regulationsFileName;
 
+    @Column(unique = true)
     private String regulationsFileUrl;
 
     private String registrationStartDate;

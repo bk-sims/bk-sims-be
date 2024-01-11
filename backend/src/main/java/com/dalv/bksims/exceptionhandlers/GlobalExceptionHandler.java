@@ -1,6 +1,7 @@
 package com.dalv.bksims.exceptionhandlers;
 
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
+import com.dalv.bksims.exceptions.AuthException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.FieldBlankException;
 import com.dalv.bksims.exceptions.FileTooLargeException;
@@ -25,6 +26,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ProblemDetail internalServerException(Exception ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ProblemDetail handleAuthException(AuthException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(ex.getStatus());
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;
     }
