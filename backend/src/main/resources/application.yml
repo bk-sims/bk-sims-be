@@ -40,3 +40,9 @@ s3:
   bucket:
     name: ${S3_BUCKET}
     url: ${S3_BUCKET_URL}
+
+springdoc:
+  api-docs:
+    path: /doc/api-docs
+  swagger-ui:
+    path: /doc/swagger

@@ -3,6 +3,7 @@ package com.dalv.bksims.controllers.social_points_management;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.services.social_points_management.ActivityService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 
+@Tag(name = "Activity")
 @RestController
 @RequestMapping("/api/v1/activities")
 @RequiredArgsConstructor
@@ -36,13 +38,19 @@ public class ActivityController {
     }
 
     @GetMapping("/pagination/{offset}/{pageSize}")
-    public ResponseEntity<Page<Activity>> findActivityWithPagination(@PathVariable int offset, @PathVariable int pageSize) {
+    public ResponseEntity<Page<Activity>> findActivityWithPagination(
+            @PathVariable int offset,
+            @PathVariable int pageSize
+    ) {
         Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(offset, pageSize);
         return new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
     }
 
     @PatchMapping("/{title}")
-    public ResponseEntity<Activity> updateActivityById(@PathVariable String title, @ModelAttribute @Valid ActivityRequest activityUpdateRequest) {
+    public ResponseEntity<Activity> updateActivityById(
+            @PathVariable String title,
+            @ModelAttribute @Valid ActivityRequest activityUpdateRequest
+    ) {
         Activity activity = activityService.updateActivityInfo(title, activityUpdateRequest);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
