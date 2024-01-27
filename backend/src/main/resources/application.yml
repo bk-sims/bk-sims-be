@@ -40,3 +40,17 @@ s3:
   bucket:
     name: ${S3_BUCKET}
     url: ${S3_BUCKET_URL}
+
+application:
+  security:
+    jwt:
+      secret-key: c4d0b52d59e24b276649b9a0e98d12c7dd86193bbcb2748a8734831c0d539c9f
+      expiration: 86400000
+      refresh-token:
+        expiration: 604800000
+
+springdoc:
+  api-docs:
+    path: /doc/api-docs
+  swagger-ui:
+    path: /doc/swagger
