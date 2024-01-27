@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,18 +27,21 @@ public class ActivityController {
     private final ActivityService activityService;
 
     @PostMapping
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Activity> createActivity(@ModelAttribute @Valid ActivityRequest activityRequest) throws Exception {
         Activity activity = activityService.createActivity(activityRequest);
         return new ResponseEntity<>(activity, HttpStatus.CREATED);
     }
 
     @GetMapping("/{title}")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Activity> findOneActivityByTitle(@PathVariable String title) {
         Activity activity = activityService.findOneActivityByTitle(title);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 
     @GetMapping("/pagination/{offset}/{pageSize}")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Page<Activity>> findActivityWithPagination(
             @PathVariable int offset,
             @PathVariable int pageSize
@@ -47,6 +51,7 @@ public class ActivityController {
     }
 
     @PatchMapping("/{title}")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Activity> updateActivityById(
             @PathVariable String title,
             @ModelAttribute @Valid ActivityRequest activityUpdateRequest

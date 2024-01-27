@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(securedEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
     private final AuthenticationProvider authenticationProvider;
@@ -30,7 +30,11 @@ public class SecurityConfiguration {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
-                                               req.requestMatchers("/api/auth/**")
+                                               req.requestMatchers(
+                                                               "/api/v1/auth/**",
+                                                               "/doc/api-docs",
+                                                               "/doc/swagger"
+                                                       )
                                                        .permitAll()
                                                        .anyRequest()
                                                        .authenticated()
@@ -43,7 +47,7 @@ public class SecurityConfiguration {
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(config ->
-                                config.logoutUrl("/api/auth/logout")
+                                config.logoutUrl("/api/v1/auth/logout")
                                         .addLogoutHandler(logoutHandler)
                                         .logoutSuccessHandler(
                                                 (request, response, authentication) ->
