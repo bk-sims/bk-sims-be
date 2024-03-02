@@ -1,9 +1,15 @@
 package com.dalv.bksims.configurations;
 
+import net.kaczmarzyk.spring.data.jpa.web.SpecificationArgumentResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.w3c.dom.stylesheets.LinkStyle;
+
+import java.util.List;
 
 @Configuration
 public class AppConfiguration {
@@ -19,5 +25,9 @@ public class AppConfiguration {
                         .allowCredentials(true);
             }
         };
-    }
+    };
+
+    @Bean
+    public HandlerMethodArgumentResolver specificationArgumentResolver() { return new SpecificationArgumentResolver(); }
 }
+
