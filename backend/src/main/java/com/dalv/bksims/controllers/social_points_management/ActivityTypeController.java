@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,11 +25,13 @@ public class ActivityTypeController {
     private final ActivityTypeService activityTypeService;
 
     @GetMapping
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
     public List<ActivityType> findAll() {
         return activityTypeService.findAll();
     }
 
     @PostMapping
+    @Secured({"ROLE_ADMIN"})
     public ActivityType addActivityType(@Valid @RequestBody ActivityTypeRequest activityTypeRequest) {
         ActivityType newActivityType = new ActivityType();
         newActivityType.setName(activityTypeRequest.name());
