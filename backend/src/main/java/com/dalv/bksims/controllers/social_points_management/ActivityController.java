@@ -6,7 +6,11 @@ import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.kaczmarzyk.spring.data.jpa.domain.Like;
+import net.kaczmarzyk.spring.data.jpa.web.annotation.Or;
+import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -44,9 +49,14 @@ public class ActivityController {
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Page<Activity>> findActivityWithPagination(
             @PathVariable int offset,
-            @PathVariable int pageSize
+            @PathVariable int pageSize,
+            @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
+            @Or({
+                    @Spec(path = "location", params = "query", spec = Like.class), @Spec(path = "title", params = "query", spec = Like.class)
+            }) Specification<Activity> activitySpec
     ) {
-        Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(offset, pageSize);
+        Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset,
+                                                                                             pageSize, order);
         return new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
     }
 

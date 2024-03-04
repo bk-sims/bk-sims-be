@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,7 +55,8 @@ public class ActivityService {
         // Check validity of dates
         DateValidator.validateStartDateAndEndDate(activityRequest.startDate(), activityRequest.endDate());
         if (activityRequest.registrationStartDate() != null && activityRequest.registrationEndDate() != null) {
-            DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(), activityRequest.registrationEndDate());
+            DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(),
+                                                      activityRequest.registrationEndDate());
         }
         // Check validity of banner file
         MultipartFile bannerFile = activityRequest.bannerFile();
@@ -118,7 +121,8 @@ public class ActivityService {
         activity.setPoints(activityUpdateRequest.points());
 
         // Check organization name
-        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization().getName() : activityUpdateRequest.organization();
+        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization()
+                .getName() : activityUpdateRequest.organization();
         Organization organization = organizationRepo.findByName(organizationUpdateRequestName);
 
         if (organization == null) {
@@ -131,7 +135,8 @@ public class ActivityService {
         // Check validity of dates
         DateValidator.validateStartDateAndEndDate(activityUpdateRequest.startDate(), activityUpdateRequest.endDate());
         if (activityUpdateRequest.registrationStartDate() != null && activityUpdateRequest.registrationEndDate() != null) {
-            DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(), activityUpdateRequest.registrationEndDate());
+            DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(),
+                                                      activityUpdateRequest.registrationEndDate());
         }
 
         activity.setStartDate(activityUpdateRequest.startDate());
@@ -183,7 +188,16 @@ public class ActivityService {
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
-    public Page<Activity> findActivityWithPagination(int offset, int pageSize) {
-        return activityRepo.findAll(PageRequest.of(offset, pageSize));
+    public Page<Activity> findActivityWithPagination(
+            Specification<Activity> activitySpec,
+            int offset,
+            int pageSize,
+            String order
+    ) {
+        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by(
+                "startDate").descending();
+        return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
     }
+
+    ;
 }
