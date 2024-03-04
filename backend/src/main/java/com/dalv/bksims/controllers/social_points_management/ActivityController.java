@@ -54,7 +54,6 @@ public class ActivityController {
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             @Or({
-
                     @Spec(path = "location", params = "query", spec = Like.class),
                     @Spec(path = "title", params = "query", spec = Like.class)
             })
