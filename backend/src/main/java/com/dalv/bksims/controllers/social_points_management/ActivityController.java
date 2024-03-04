@@ -6,6 +6,8 @@ import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.kaczmarzyk.spring.data.jpa.domain.GreaterThan;
+import net.kaczmarzyk.spring.data.jpa.domain.LessThanOrEqual;
 import net.kaczmarzyk.spring.data.jpa.domain.Like;
 import net.kaczmarzyk.spring.data.jpa.web.annotation.Or;
 import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
@@ -22,7 +24,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 
 @Tag(name = "Activity")
 @RestController
@@ -51,13 +52,37 @@ public class ActivityController {
             @PathVariable int offset,
             @PathVariable int pageSize,
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
+            @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             @Or({
-                    @Spec(path = "location", params = "query", spec = Like.class), @Spec(path = "title", params = "query", spec = Like.class)
-            }) Specification<Activity> activitySpec
+
+                    @Spec(path = "location", params = "query", spec = Like.class),
+                    @Spec(path = "title", params = "query", spec = Like.class)
+            })
+            Specification<Activity> activitySpec,
+            @Spec(path = "endDate", constVal = "#{T(java.time.LocalDate).now()}", valueInSpEL = true, spec = LessThanOrEqual.class)
+            Specification<Activity> AcitivityWithClosedStatus,
+            @Spec(path = "endDate", constVal = "#{T(java.time.LocalDate).now()}", valueInSpEL = true, spec = GreaterThan.class)
+            Specification<Activity> AcitivityWithOpenStatus
+
     ) {
-        Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset,
-                                                                                             pageSize, order);
-        return new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
+        return switch (status) {
+            case "OPEN" -> {
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(
+                        activitySpec.and(AcitivityWithOpenStatus), offset, pageSize, order);
+                yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
+            }
+            case "CLOSED" -> {
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(
+                        activitySpec.and(AcitivityWithClosedStatus), offset, pageSize, order);
+                yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
+            }
+            default -> {
+                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
+                                                                                                     offset, pageSize,
+                                                                                                     order);
+                yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
+            }
+        };
     }
 
     @PatchMapping("/{title}")

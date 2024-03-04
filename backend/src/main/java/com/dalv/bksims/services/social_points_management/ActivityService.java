@@ -199,5 +199,4 @@ public class ActivityService {
         return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
     }
 
-    ;
 }
