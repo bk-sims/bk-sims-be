@@ -193,6 +193,9 @@ public class ActivityService {
 
     public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order) {
         Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by("startDate").descending();
+        if (activitySpec == null) {
+            return activityRepo.findAll(PageRequest.of(offset - 1, pageSize, sort));
+        }
         return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
     }
 }

@@ -49,11 +49,8 @@ public class ActivityController {
     @GetMapping("/pagination/{offset}/{pageSize}")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Page<Activity>> findActivityWithPagination(
-            
             @PathVariable int offset,
-           
-            @PathVariable int pageSize
-    ,
+            @PathVariable int pageSize,
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             @Or({
@@ -69,11 +66,13 @@ public class ActivityController {
     ) {
         return switch (status) {
             case "OPEN" -> {
-                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(activitySpec.and(AcitivityWithOpenStatus), offset, pageSize, order);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(AcitivityWithOpenStatus);
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
-                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(activitySpec.and(AcitivityWithClosedStatus), offset, pageSize, order);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(AcitivityWithClosedStatus);
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
@@ -88,7 +87,7 @@ public class ActivityController {
     public ResponseEntity<Activity> updateActivityById(
             @PathVariable String title,
             @ModelAttribute @Valid ActivityRequest activityUpdateRequest
-    
+
     ) {
         Activity activity = activityService.updateActivityInfo(title, activityUpdateRequest);
         return new ResponseEntity<>(activity, HttpStatus.OK);
