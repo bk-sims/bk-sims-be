@@ -61,7 +61,8 @@ public class ActivityService {
         // Check validity of dates
         DateValidator.validateStartDateAndEndDate(activityRequest.startDate(), activityRequest.endDate());
         if (activityRequest.registrationStartDate() != null && activityRequest.registrationEndDate() != null) {
-            DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(), activityRequest.registrationEndDate());
+            DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(),
+                                                      activityRequest.registrationEndDate());
         }
         // Check validity of banner file
         MultipartFile bannerFile = activityRequest.bannerFile();
@@ -126,7 +127,8 @@ public class ActivityService {
         activity.setPoints(activityUpdateRequest.points());
 
         // Check organization name
-        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization().getName() : activityUpdateRequest.organization();
+        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization()
+                .getName() : activityUpdateRequest.organization();
         Organization organization = organizationRepo.findByName(organizationUpdateRequestName);
 
         if (organization == null) {
@@ -139,7 +141,8 @@ public class ActivityService {
         // Check validity of dates
         DateValidator.validateStartDateAndEndDate(activityUpdateRequest.startDate(), activityUpdateRequest.endDate());
         if (activityUpdateRequest.registrationStartDate() != null && activityUpdateRequest.registrationEndDate() != null) {
-            DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(), activityUpdateRequest.registrationEndDate());
+            DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(),
+                                                      activityUpdateRequest.registrationEndDate());
         }
 
         activity.setStartDate(activityUpdateRequest.startDate());
@@ -198,4 +201,5 @@ public class ActivityService {
         }
         return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
     }
+
 }
