@@ -1,5 +1,6 @@
 package com.dalv.bksims.services.social_points_management;
 
+import com.amazonaws.services.stepfunctions.model.ActivityListItem;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
@@ -14,6 +15,9 @@ import com.dalv.bksims.validations.DateValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.kaczmarzyk.spring.data.jpa.domain.LessThanOrEqual;
+import net.kaczmarzyk.spring.data.jpa.utils.SpecificationBuilder;
+import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.joda.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +26,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/activities")
@@ -188,14 +194,11 @@ public class ActivityService {
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
-    public Page<Activity> findActivityWithPagination(
-            Specification<Activity> activitySpec,
-            int offset,
-            int pageSize,
-            String order
-    ) {
-        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by(
-                "startDate").descending();
+    public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order) {
+        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by("startDate").descending();
+        if (activitySpec == null) {
+            return activityRepo.findAll(PageRequest.of(offset - 1, pageSize, sort));
+        }
         return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
     }
 

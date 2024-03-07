@@ -35,7 +35,10 @@ public class AppConfiguration {
                         .allowCredentials(true);
             }
         };
-    }
+    };
+
+    @Bean
+    public HandlerMethodArgumentResolver specificationArgumentResolver() { return new SpecificationArgumentResolver(); }
 
     @Bean
     public UserDetailsService userDetailsService() {
@@ -60,11 +63,7 @@ public class AppConfiguration {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-
-    @Bean
-    public HandlerMethodArgumentResolver specificationArgumentResolver() {
-        return new SpecificationArgumentResolver();
-    }
 }
+
+
 
