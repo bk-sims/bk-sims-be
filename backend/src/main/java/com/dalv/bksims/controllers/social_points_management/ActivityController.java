@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+
 @Tag(name = "Activity")
 @RestController
 @RequestMapping("/api/v1/activities")
@@ -54,7 +55,6 @@ public class ActivityController {
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
             @Or({
-
                     @Spec(path = "location", params = "query", spec = Like.class),
                     @Spec(path = "title", params = "query", spec = Like.class)
             })
@@ -67,19 +67,17 @@ public class ActivityController {
     ) {
         return switch (status) {
             case "OPEN" -> {
-                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(
-                        activitySpec.and(AcitivityWithOpenStatus), offset, pageSize, order);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(AcitivityWithOpenStatus);
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
-                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(
-                        activitySpec.and(AcitivityWithClosedStatus), offset, pageSize, order);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(AcitivityWithClosedStatus);
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
-                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
-                                                                                                     offset, pageSize,
-                                                                                                     order);
+                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset, pageSize, order);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
