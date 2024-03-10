@@ -45,15 +45,69 @@ CREATE TABLE activity (
     FOREIGN KEY (organization_id) REFERENCES organization (id)
 );
 
+CREATE TABLE program (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE department (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE "user" (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    avatar_file_url VARCHAR(255) UNIQUE,
+    gender VARCHAR(20) NOT NULL,
+    dob DATE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    phone VARCHAR(255) UNIQUE NOT NULL
+);
 
 
+CREATE TABLE student (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    program_id UUID NOT NULL,
+    department_id UUID NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id),
+    FOREIGN KEY (program_id) REFERENCES program(id),
+    FOREIGN KEY (department_id) REFERENCES department(id)
+);
 
+CREATE TABLE lecturer (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    department_id UUID NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id),
+    FOREIGN KEY (department_id) REFERENCES department(id)
+);
 
+CREATE TABLE admin (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id)
+);
 
+CREATE TABLE aao (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user"(id)
+);
 
-
-
-
+CREATE TABLE token (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expired BOOLEAN NOT NULL,
+    revoked BOOLEAN NOT NULL,
+    user_id UUID NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES "user" (id)
+);
 
 
 -- Insert initial values for tables
@@ -120,3 +174,62 @@ INSERT INTO organization (id, name) VALUES
 (uuid_generate_v4(), 'Student Support and Employment Center'),
 (uuid_generate_v4(), 'Technical Training Maintenance Center'),
 (uuid_generate_v4(), 'School Student Union');
+
+INSERT INTO program (id, name) VALUES 
+(uuid_generate_v4(), 'General Program'),
+(uuid_generate_v4(), 'High Quality Program'),
+(uuid_generate_v4(), 'Talented Engineer Program'),
+(uuid_generate_v4(), 'PFIEV'),
+(uuid_generate_v4(), 'Japan-Oriented Program');
+
+INSERT INTO department (id, name) VALUES 
+(uuid_generate_v4(), 'Automotive Engineering'),
+(uuid_generate_v4(), 'Chemical Engineering'),
+(uuid_generate_v4(), 'Computer Engineering'),
+(uuid_generate_v4(), 'Construction Materials Engineering'),
+(uuid_generate_v4(), 'Aerospace Engineering'),
+(uuid_generate_v4(), 'Architecture'),
+(uuid_generate_v4(), 'Computer Science'),
+(uuid_generate_v4(), 'Electrical Electronics Engineering'),
+(uuid_generate_v4(), 'Mechatronics Engineering'),
+(uuid_generate_v4(), 'Biotechnology'),
+(uuid_generate_v4(), 'Transportation Engineering'),
+(uuid_generate_v4(), 'Environmental Engineering'),
+(uuid_generate_v4(), 'Business Administration'),
+(uuid_generate_v4(), 'Logistics & Supply Chain Management'),
+(uuid_generate_v4(), 'Physics Engineering'),
+(uuid_generate_v4(), 'Civil Engineering'),
+(uuid_generate_v4(), 'Food Technology'),
+(uuid_generate_v4(), 'Environmental and Technology Management'),
+(uuid_generate_v4(), 'Machanical Engineering'),
+(uuid_generate_v4(), 'Mechatronic Engineering (Minor: Robot Engineering)'),
+(uuid_generate_v4(), 'Petroleum Engineering');
+
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '1', 'System', 'Admin', 'Male', '1999-05-15', 'admin@hcmut.edu.vn', '$2a$10$RsvaI18Q3GN81PvY7u0ng.47TmoRAjRMVNly7cYfC7Nio15lvane2', 'ADMIN', '1234567890');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '2', 'System', 'Lecturer', 'Female', '1999-05-15', 'lecturer@hcmut.edu.vn', '$2a$10$ZhbIAdxTXc2FSr74lB86mewOTb8yQ0hr7lDqXw5WwGBfkHevkEFMS', 'LECTURER', '1234567891');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '3', 'System', 'Student', 'Male', '1999-05-15', 'student@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567892');
+
+INSERT INTO admin (id, user_id) VALUES
+(uuid_generate_v4(), (SELECT id FROM "user" WHERE email = 'admin@hcmut.edu.vn'));
+
+INSERT INTO lecturer (id, user_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+);
+
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'High Quality Program'),
+    (SELECT id FROM department WHERE name = 'Computer Science')
+);
+
