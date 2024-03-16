@@ -2,12 +2,18 @@ package com.dalv.bksims.services.social_points_management;
 
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
+import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
+import com.dalv.bksims.models.repositories.social_points_management.ActivityParticipationRepository;
 import com.dalv.bksims.models.repositories.social_points_management.ActivityRepository;
 import com.dalv.bksims.models.repositories.social_points_management.OrganizationRepository;
+import com.dalv.bksims.models.repositories.user.UserRepository;
 import com.dalv.bksims.services.common.S3Service;
 import com.dalv.bksims.validations.ActivityValidator;
 import com.dalv.bksims.validations.DateValidator;
@@ -18,6 +24,7 @@ import net.kaczmarzyk.spring.data.jpa.domain.LessThanOrEqual;
 import net.kaczmarzyk.spring.data.jpa.utils.SpecificationBuilder;
 import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.joda.time.LocalDate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -27,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/activities")
@@ -35,6 +43,10 @@ import java.util.List;
 public class ActivityService {
 
     private final ActivityRepository activityRepo;
+
+    private final UserRepository userRepo;
+
+    private final ActivityParticipationRepository activityParticipationRepo;
 
     private final OrganizationRepository organizationRepo;
 
@@ -103,7 +115,7 @@ public class ActivityService {
                 .registrationStartDate(activityRequest.registrationStartDate())
                 .registrationEndDate(activityRequest.registrationEndDate())
                 .activityType(activityRequest.activityType())
-                .status(Status.PENDING)
+                .status(Status.PENDING.toString())
                 .createdAt(LocalDate.now().toString())
                 .organization(organization)
                 .build();
@@ -199,6 +211,59 @@ public class ActivityService {
             return activityRepo.findAll(PageRequest.of(offset - 1, pageSize, sort));
         }
         return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
+    }
+
+    @Transactional
+    public ActivityParticipation registerActivity(ActivityRegistrationRequest activityRegistrationRequest) {
+        Activity activity = activityRepo.findOneById(activityRegistrationRequest.activityId());
+        Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
+
+        if (activity == null) {
+            throw new EntityNotFoundException("Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+        }
+
+        ActivityParticipation activityParticipation = new ActivityParticipation();
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId();
+
+        activityParticipationId.setActivityId(activity.getId());
+        activityParticipationId.setUserId(user.get().getId());
+        activityParticipation.setActivityParticipationId(activityParticipationId);
+
+        activityParticipation.setActivity(activity);
+        activityParticipation.setUser(user.get());
+
+        try {
+            activityParticipationRepo.save(activityParticipation);
+        } catch (DataIntegrityViolationException e) {
+            throw e;
+        }
+        return activityParticipation;
+    }
+
+    @Transactional
+    public ActivityParticipation deregisterActivity(ActivityRegistrationRequest activityRegistrationRequest) {
+        Activity activity = activityRepo.findOneById(activityRegistrationRequest.activityId());
+        Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
+
+        if (activity == null) {
+            throw new EntityNotFoundException("Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+        }
+
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder().activityId(activity.getId()).userId(user.get().getId()).build();
+        Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(activityParticipationId);
+        if (activityParticipation.isEmpty()){
+            throw new EntityNotFoundException("No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
+        }
+
+        activityParticipationRepo.delete(activityParticipation.get());
+
+        return activityParticipation.get();
     }
 
 }

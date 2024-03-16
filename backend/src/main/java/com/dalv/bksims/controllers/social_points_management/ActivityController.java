@@ -1,7 +1,10 @@
 package com.dalv.bksims.controllers.social_points_management;
 
+import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -16,14 +19,20 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+import java.util.UUID;
 
 
 @Tag(name = "Activity")
@@ -63,7 +72,6 @@ public class ActivityController {
             Specification<Activity> AcitivityWithClosedStatus,
             @Spec(path = "endDate", constVal = "#{T(java.time.LocalDate).now()}", valueInSpEL = true, spec = GreaterThan.class)
             Specification<Activity> AcitivityWithOpenStatus
-
     ) {
         return switch (status) {
             case "OPEN" -> {
@@ -92,4 +100,26 @@ public class ActivityController {
         Activity activity = activityService.updateActivityInfo(title, activityUpdateRequest);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
+
+    @PostMapping("/register")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<ActivityParticipationId> registerActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(UUID.fromString(payload.get("activityId")), userEmail);
+        ActivityParticipation activityParticipation = activityService.registerActivity(activityRegistrationRequest);
+        return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
+    }
+
+    @PostMapping("/deregister")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<ActivityParticipationId> deregisterActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(UUID.fromString(payload.get("activityId")), userEmail);
+        ActivityParticipation activityParticipation = activityService.deregisterActivity(activityRegistrationRequest);
+        return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
+    }
+
+
 }

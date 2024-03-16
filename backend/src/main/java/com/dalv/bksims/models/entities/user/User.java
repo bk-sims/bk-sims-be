@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.entities.user;
 
 import com.dalv.bksims.models.entities.auth.Token;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +22,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -94,4 +96,8 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    @OneToMany(mappedBy = "user")
+    @JsonIgnore
+    private Set<ActivityParticipation> participation;
 }
