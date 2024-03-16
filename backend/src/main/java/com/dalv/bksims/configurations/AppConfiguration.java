@@ -35,7 +35,7 @@ public class AppConfiguration {
                         .allowCredentials(true);
             }
         };
-    };
+    }
 
     @Bean
     public HandlerMethodArgumentResolver specificationArgumentResolver() { return new SpecificationArgumentResolver(); }

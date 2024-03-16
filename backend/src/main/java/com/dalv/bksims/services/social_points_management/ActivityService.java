@@ -1,6 +1,5 @@
 package com.dalv.bksims.services.social_points_management;
 
-import com.amazonaws.services.stepfunctions.model.ActivityListItem;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;

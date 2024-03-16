@@ -102,6 +102,30 @@ public class AuthenticationService {
         tokenRepository.save(createdToken);
     }
 
+    public User validateToken(
+            HttpServletRequest request
+    ) throws IOException {
+        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        final String accessToken = authHeader.substring(7);
+        final String userEmail = jwtService.extractUsername(accessToken);
+
+        if (userEmail != null) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow();
+
+            if (jwtService.isTokenValid(accessToken, user)) {
+                return user;
+            }
+        }
+
+        return null;
+    }
+
     public void refreshToken(
             HttpServletRequest request,
             HttpServletResponse response

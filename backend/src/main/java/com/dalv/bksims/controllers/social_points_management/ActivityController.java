@@ -88,7 +88,6 @@ public class ActivityController {
     public ResponseEntity<Activity> updateActivityById(
             @PathVariable String title,
             @ModelAttribute @Valid ActivityRequest activityUpdateRequest
-
     ) {
         Activity activity = activityService.updateActivityInfo(title, activityUpdateRequest);
         return new ResponseEntity<>(activity, HttpStatus.OK);

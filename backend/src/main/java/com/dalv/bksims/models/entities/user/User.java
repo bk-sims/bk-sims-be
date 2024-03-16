@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.entities.user;
 
 import com.dalv.bksims.models.entities.auth.Token;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -51,6 +52,7 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String email;
 
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -60,6 +62,7 @@ public class User implements UserDetails {
     private String phone;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private List<Token> tokens;
 
     @Override
