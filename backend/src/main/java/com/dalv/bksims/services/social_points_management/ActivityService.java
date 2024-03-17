@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -296,4 +297,26 @@ public class ActivityService {
         return activityParticipation.get();
     }
 
+    @Transactional
+    public List<UUID> removeParticipant(String activityId, List<String> userIds) {
+        List<UUID> removedParticipants = new ArrayList<UUID>();
+        Activity activity = activityRepo.findOneById(UUID.fromString(activityId));
+
+        if (userIds.isEmpty()){
+            return removedParticipants;
+        }
+
+        for (String userId : userIds) {
+            ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder().activityId(activity.getId()).userId(UUID.fromString(userId)).build();
+            Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(activityParticipationId);
+            if (activityParticipation.isEmpty()) {
+                throw new EntityNotFoundException("No activity with ID " + activityId + " associated with user " + userId + " found");
+            }
+
+            removedParticipants.add(UUID.fromString(userId));
+            activityParticipationRepo.delete(activityParticipation.get());
+        }
+
+        return removedParticipants;
+    }
 }

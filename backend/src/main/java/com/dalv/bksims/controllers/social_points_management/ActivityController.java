@@ -1,8 +1,10 @@
 package com.dalv.bksims.controllers.social_points_management;
 
+import com.amazonaws.services.quicksight.model.ExcludePeriodConfiguration;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantRemovalRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
@@ -33,9 +35,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 @Tag(name = "Activity")
 @RestController
@@ -79,12 +83,12 @@ public class ActivityController {
         return switch (status) {
             case "OPEN" -> {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(AcitivityWithOpenStatus);
-                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order, getMine);
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(finalActivitySpec, offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(AcitivityWithClosedStatus);
-                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order, getMine);
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec, offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
@@ -124,5 +128,10 @@ public class ActivityController {
         return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
     }
 
-
+    @PostMapping("/removeParticipants")
+    @Secured({"ROLE_ADMIN"})
+    public ResponseEntity<List<UUID>> removeParticipants(@RequestBody @Valid ParticipantRemovalRequest participantRemovalRequest) throws Exception {
+        List<UUID> removedParticipants = activityService.removeParticipant(participantRemovalRequest.activityId(), participantRemovalRequest.userIds());
+        return new ResponseEntity<>(removedParticipants, HttpStatus.OK);
+    }
 }
