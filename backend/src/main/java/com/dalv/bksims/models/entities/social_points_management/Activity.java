@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.entities.social_points_management;
 
 import com.dalv.bksims.models.enums.Status;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -66,7 +69,7 @@ public class Activity {
 
     private int ownerId;
 
-    private Status status = Status.PENDING;
+    private String status = Status.PENDING.toString();
 
     private String createdAt;
 
@@ -74,5 +77,7 @@ public class Activity {
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
-
+    @OneToMany(mappedBy = "activity")
+    @JsonIgnore
+    private Set<ActivityParticipation> participation;
 }
