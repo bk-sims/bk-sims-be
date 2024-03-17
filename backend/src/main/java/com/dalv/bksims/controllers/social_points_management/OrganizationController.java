@@ -22,7 +22,7 @@ public class OrganizationController {
     private final OrganizationService organizationService;
 
     @GetMapping
-    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public List<Organization> findAll() {
         return organizationService.findAll();
     }

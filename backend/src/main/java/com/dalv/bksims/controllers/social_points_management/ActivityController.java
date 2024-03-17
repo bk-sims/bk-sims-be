@@ -96,11 +96,11 @@ public class ActivityController {
 
     @PatchMapping("/{title}")
     @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<Activity> updateActivityById(
+    public ResponseEntity<Activity> updateActivityByTitle(
             @PathVariable String title,
             @ModelAttribute @Valid ActivityRequest activityUpdateRequest
     ) {
-        Activity activity = activityService.updateActivityInfo(title, activityUpdateRequest);
+        Activity activity = activityService.updateActivityByTitle(title, activityUpdateRequest);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 
@@ -123,6 +123,4 @@ public class ActivityController {
         ActivityParticipation activityParticipation = activityService.deregisterActivity(activityRegistrationRequest);
         return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
     }
-
-
 }

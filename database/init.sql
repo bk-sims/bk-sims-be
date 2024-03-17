@@ -20,6 +20,20 @@ CREATE TABLE organization (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE "user" (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    avatar_file_url VARCHAR(255) UNIQUE,
+    gender VARCHAR(20) NOT NULL,
+    dob DATE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    phone VARCHAR(255) UNIQUE NOT NULL
+);
+
 -- owner_id and organization_id will be changed to foreign key later
 CREATE TABLE activity (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -38,11 +52,20 @@ CREATE TABLE activity (
     registration_start_date DATE, 
     registration_end_date DATE,
     activity_type VARCHAR(255),
-    owner_id INT,
+    owner_id UUID NOT NULL,
     organization_id UUID,
     status VARCHAR(20) NOT NULL,
     created_at DATE NOT NULL,
-    FOREIGN KEY (organization_id) REFERENCES organization (id)
+    CONSTRAINT fk_activity_organization FOREIGN KEY (organization_id) REFERENCES organization (id),
+    CONSTRAINT fk_activity_owner FOREIGN KEY (owner_id) REFERENCES "user" (id)
+);
+
+CREATE TABLE activity_participation(
+    activity_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    CONSTRAINT fk_participation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
+    CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    PRIMARY KEY (activity_id, user_id)
 );
 
 CREATE TABLE program (
@@ -55,49 +78,34 @@ CREATE TABLE department (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE "user" (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    code VARCHAR(255) UNIQUE NOT NULL,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    avatar_file_url VARCHAR(255) UNIQUE,
-    gender VARCHAR(20) NOT NULL,
-    dob DATE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL,
-    phone VARCHAR(255) UNIQUE NOT NULL
-);
-
-
 CREATE TABLE student (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     program_id UUID NOT NULL,
     department_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id),
-    FOREIGN KEY (program_id) REFERENCES program(id),
-    FOREIGN KEY (department_id) REFERENCES department(id)
+    CONSTRAINT fk_student_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    CONSTRAINT fk_student_program FOREIGN KEY (program_id) REFERENCES program(id),
+    CONSTRAINT fk_student_department FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
 CREATE TABLE lecturer (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     department_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id),
-    FOREIGN KEY (department_id) REFERENCES department(id)
+    CONSTRAINT fk_lecturer_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    CONSTRAINT fk_lecturer_department FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
 CREATE TABLE admin (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id)
+    CONSTRAINT fk_admin_user FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE aao (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id)
+    CONSTRAINT fk_admin_aao FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE token (
@@ -106,7 +114,7 @@ CREATE TABLE token (
     expired BOOLEAN NOT NULL,
     revoked BOOLEAN NOT NULL,
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user" (id)
+    CONSTRAINT fk_token_user FOREIGN KEY (user_id) REFERENCES "user" (id)
 );
 
 

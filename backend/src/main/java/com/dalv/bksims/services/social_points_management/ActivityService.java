@@ -7,6 +7,7 @@ import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
+import com.dalv.bksims.models.entities.social_points_management.ActivityType;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
@@ -73,6 +74,16 @@ public class ActivityService {
             throw new EntityNotFoundException("Organization with name " + organizationRequestName + " not found");
         }
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+
+        User owner = userRepo.findByEmail(userEmail).orElseThrow(
+                () -> new EntityNotFoundException("User with id " + organizationRequestName + " not found"));
+
+        if (owner == null) {
+            throw new EntityNotFoundException("Owner with email " + userEmail + " not found");
+        }
+
         String organizationName = organization.getName();
 
         // Check validity of dates
@@ -104,6 +115,11 @@ public class ActivityService {
         String regulationsFileUrl = (regulationsFileName == null) ? null : s3Service.getFileUrl(regulationsFileName,
                                                                                                 organizationName + "/");
 
+        String activityType = null;
+
+        if (activityRequest.activityType() != null && !activityRequest.activityType().isBlank()) {
+            activityType = activityRequest.activityType();
+        }
 
         Activity activity = Activity.builder()
                 .title(activityRequest.title())
@@ -120,10 +136,11 @@ public class ActivityService {
                 .regulationsFileUrl(regulationsFileUrl)
                 .registrationStartDate(activityRequest.registrationStartDate())
                 .registrationEndDate(activityRequest.registrationEndDate())
-                .activityType(activityRequest.activityType())
+                .activityType(activityType)
                 .status(Status.PENDING.toString())
                 .createdAt(LocalDate.now().toString())
                 .organization(organization)
+                .owner(owner)
                 .build();
 
         activityRepo.save(activity);
@@ -131,7 +148,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public Activity updateActivityInfo(String title, ActivityRequest activityUpdateRequest) {
+    public Activity updateActivityByTitle(String title, ActivityRequest activityUpdateRequest) {
         Activity activity = activityRepo.findOneByTitle(title);
         if (activity == null) {
             throw new EntityNotFoundException("Activity with title " + title + " not found!");
@@ -143,13 +160,19 @@ public class ActivityService {
         activity.setCanParticipantsInvite(activityUpdateRequest.canParticipantsInvite());
         activity.setPoints(activityUpdateRequest.points());
 
+        String activityType = null;
+        if (activityUpdateRequest.activityType() != null && !activityUpdateRequest.activityType().isBlank()) {
+            activityType = activityUpdateRequest.activityType();
+        }
+
+        activity.setActivityType(activityType);
+
         // Check organization name
-        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization()
-                .getName() : activityUpdateRequest.organization();
-        Organization organization = organizationRepo.findByName(organizationUpdateRequestName);
+        String organizationRequestName = (activityUpdateRequest.organization() == null) ? "Other School-level Units" : activityUpdateRequest.organization();
+        Organization organization = organizationRepo.findByName(organizationRequestName);
 
         if (organization == null) {
-            throw new EntityNotFoundException("Organization with name " + organizationUpdateRequestName + " not found");
+            throw new EntityNotFoundException("Organization with name " + organizationRequestName + " not found");
         }
 
         String organizationName = organization.getName();
@@ -167,39 +190,53 @@ public class ActivityService {
         activity.setRegistrationStartDate(activityUpdateRequest.registrationStartDate());
         activity.setRegistrationEndDate(activityUpdateRequest.registrationEndDate());
 
-        // Check validity of banner file
+        // Update banner file
         MultipartFile bannerFile = activityUpdateRequest.bannerFile();
-        ActivityValidator.validateBannerFile(bannerFile);
-
-        // Delete old file in S3
+        String currentBannerFileName = activity.getBannerFileName();
         String currentBannerFileUrl = activity.getBannerFileUrl();
-        if (currentBannerFileUrl != null) {
-            s3Service.deleteFileForActivity(currentBannerFileUrl);
+        String bannerFileName = null;
+        String bannerFileUrl = null;
+
+        if (bannerFile == null) {
+            bannerFileName = currentBannerFileName;
+            bannerFileUrl = currentBannerFileUrl;
+        } else {
+            // Check validity of banner file
+            ActivityValidator.validateBannerFile(bannerFile);
+
+            // Delete old file in S3
+            if (currentBannerFileUrl != null) {
+                s3Service.deleteFileForActivity(currentBannerFileUrl);
+            }
+            // Upload new file to S3
+            bannerFileName = s3Service.uploadFileForActivity(bannerFile, organizationName);
+            bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
         }
-        // Upload new file to S3
-        String bannerFileName = s3Service.uploadFileForActivity(bannerFile, organizationName);
-        String bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
 
         activity.setBannerFileName(bannerFileName);
         activity.setBannerFileUrl(bannerFileUrl);
 
-        // Check validity of regulations file
-        if (activityUpdateRequest.regulationsFile() != null) {
-            MultipartFile regulationsFile = activityUpdateRequest.regulationsFile();
+        // Update regulations file
+        MultipartFile regulationsFile = activityUpdateRequest.regulationsFile();
+        String currentRegulationsFileUrl = activity.getRegulationsFileUrl();
+        String regulationsFileName = null;
+        String regulationsFileUrl = null;
+
+        if (regulationsFile != null) {
+            // Check validity of regulations file
             ActivityValidator.validateRegulationsFile(regulationsFile);
 
             // Delete old file in S3
-            String currentRegulationsFileUrl = activity.getRegulationsFileUrl();
             if (currentRegulationsFileUrl != null) {
                 s3Service.deleteFileForActivity(currentRegulationsFileUrl);
             }
             // Upload new file to S3
-            String regulationsFileName = s3Service.uploadFileForActivity(regulationsFile, organizationName);
-            String regulationsFileUrl = s3Service.getFileUrl(regulationsFileName, organizationName + "/");
-
-            activity.setRegulationsFileName(regulationsFileName);
-            activity.setRegulationsFileUrl(regulationsFileUrl);
+            regulationsFileName = s3Service.uploadFileForActivity(regulationsFile, organizationName);
+            regulationsFileUrl = s3Service.getFileUrl(regulationsFileName, organizationName + "/");
         }
+
+        activity.setRegulationsFileName(regulationsFileName);
+        activity.setRegulationsFileUrl(regulationsFileUrl);
 
         activityRepo.save(activity);
         return activity;
