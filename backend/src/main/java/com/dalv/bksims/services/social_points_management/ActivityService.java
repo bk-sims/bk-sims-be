@@ -7,6 +7,7 @@ import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
+import com.dalv.bksims.models.entities.social_points_management.ActivityType;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
@@ -73,11 +74,14 @@ public class ActivityService {
             throw new EntityNotFoundException("Organization with name " + organizationRequestName + " not found");
         }
 
-        User owner = userRepo.findById(activityRequest.ownerId()).orElseThrow(
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+
+        User owner = userRepo.findByEmail(userEmail).orElseThrow(
                 () -> new EntityNotFoundException("User with id " + organizationRequestName + " not found"));
 
         if (owner == null) {
-            throw new EntityNotFoundException("Owner with id " + activityRequest.ownerId() + " not found");
+            throw new EntityNotFoundException("Owner with email " + userEmail + " not found");
         }
 
         String organizationName = organization.getName();
@@ -111,6 +115,11 @@ public class ActivityService {
         String regulationsFileUrl = (regulationsFileName == null) ? null : s3Service.getFileUrl(regulationsFileName,
                                                                                                 organizationName + "/");
 
+        String activityType = null;
+
+        if (activityRequest.activityType() != null && !activityRequest.activityType().isBlank()) {
+            activityType = activityRequest.activityType();
+        }
 
         Activity activity = Activity.builder()
                 .title(activityRequest.title())
@@ -127,7 +136,7 @@ public class ActivityService {
                 .regulationsFileUrl(regulationsFileUrl)
                 .registrationStartDate(activityRequest.registrationStartDate())
                 .registrationEndDate(activityRequest.registrationEndDate())
-                .activityType(activityRequest.activityType().isBlank() ? null : activityRequest.activityType())
+                .activityType(activityType)
                 .status(Status.PENDING.toString())
                 .createdAt(LocalDate.now().toString())
                 .organization(organization)
@@ -150,8 +159,13 @@ public class ActivityService {
         activity.setNumberOfParticipants(activityUpdateRequest.numberOfParticipants());
         activity.setCanParticipantsInvite(activityUpdateRequest.canParticipantsInvite());
         activity.setPoints(activityUpdateRequest.points());
-        activity.setActivityType(
-                activityUpdateRequest.activityType().isBlank() ? null : activityUpdateRequest.activityType());
+
+        String activityType = null;
+        if (activityUpdateRequest.activityType() != null && !activityUpdateRequest.activityType().isBlank()) {
+            activityType = activityUpdateRequest.activityType();
+        }
+
+        activity.setActivityType(activityType);
 
         // Check organization name
         String organizationRequestName = (activityUpdateRequest.organization() == null) ? "Other School-level Units" : activityUpdateRequest.organization();

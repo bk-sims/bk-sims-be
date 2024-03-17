@@ -33,8 +33,6 @@ public record ActivityRequest(
         @Min(value = 1, message = "Points must be greater than or equal to 1")
         @Max(value = 500, message = "Points must be less than or equal to 500")
         Integer points,
-        @NotNull(message = "Owner id cannot be null")
-        UUID ownerId,
         MultipartFile regulationsFile,
         String registrationStartDate,
         String registrationEndDate,
