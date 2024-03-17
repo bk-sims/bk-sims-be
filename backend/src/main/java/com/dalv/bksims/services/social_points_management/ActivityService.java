@@ -26,15 +26,21 @@ import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.joda.time.LocalDate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/activities")
@@ -205,12 +211,36 @@ public class ActivityService {
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
-    public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order) {
+    public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order, String getMine) {
         Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by("startDate").descending();
+        Pageable pageRequest = PageRequest.of(offset - 1, pageSize, sort);
+
+        Page<Activity> activities = null;
         if (activitySpec == null) {
-            return activityRepo.findAll(PageRequest.of(offset - 1, pageSize, sort));
+            activities = activityRepo.findAll(pageRequest);
+        } else {
+            activities = activityRepo.findAll(activitySpec, pageRequest);
         }
-        return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
+
+        if (getMine.equals("TRUE")) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepo.findByEmail(userEmail);
+            if (user.isEmpty()) {
+                throw new EntityNotFoundException("User with ID " + userEmail + " not found");
+            }
+
+            List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
+            if (activityIds.size() == 0) {
+                return activities;
+            }
+
+            List<Activity> filteredActivities = activities.getContent().stream()
+                    .filter(activity -> Arrays.stream(activityIds.toArray()).anyMatch(id -> id.equals(activity.getId()))).toList();
+            return new PageImpl<>(filteredActivities, pageRequest, activities.getTotalElements());
+        }
+
+        return activities;
     }
 
     @Transactional
@@ -257,7 +287,7 @@ public class ActivityService {
 
         ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder().activityId(activity.getId()).userId(user.get().getId()).build();
         Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(activityParticipationId);
-        if (activityParticipation.isEmpty()){
+        if (activityParticipation.isEmpty()) {
             throw new EntityNotFoundException("No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
         }
 

@@ -1,10 +1,12 @@
 package com.dalv.bksims.controllers.social_points_management;
 
+import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
+import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,8 +34,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-
 
 @Tag(name = "Activity")
 @RestController
@@ -63,6 +65,7 @@ public class ActivityController {
             @PathVariable int pageSize,
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
+            @RequestParam(value = "getMine", required = false, defaultValue = "FALSE") String getMine,
             @Or({
                     @Spec(path = "location", params = "query", spec = Like.class),
                     @Spec(path = "title", params = "query", spec = Like.class)
@@ -76,16 +79,16 @@ public class ActivityController {
         return switch (status) {
             case "OPEN" -> {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(AcitivityWithOpenStatus);
-                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order);
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(AcitivityWithClosedStatus);
-                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order);
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
-                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset, pageSize, order);
+                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
