@@ -60,6 +60,14 @@ CREATE TABLE activity (
     CONSTRAINT fk_activity_owner FOREIGN KEY (owner_id) REFERENCES "user" (id)
 );
 
+CREATE TABLE activity_participation(
+    activity_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    CONSTRAINT fk_participation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
+    CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    PRIMARY KEY (activity_id, user_id)
+);
+
 CREATE TABLE program (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL
