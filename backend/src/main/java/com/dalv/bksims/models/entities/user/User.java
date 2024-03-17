@@ -2,11 +2,13 @@ package com.dalv.bksims.models.entities.user;
 
 import com.dalv.bksims.models.entities.auth.Token;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
+import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -66,6 +68,10 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user")
     @JsonIgnore
     private List<Token> tokens;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "owner")
+    @JsonIgnore
+    private Set<Activity> activities;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

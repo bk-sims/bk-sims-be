@@ -25,7 +25,7 @@ public class ActivityTypeController {
     private final ActivityTypeService activityTypeService;
 
     @GetMapping
-    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public List<ActivityType> findAll() {
         return activityTypeService.findAll();
     }
