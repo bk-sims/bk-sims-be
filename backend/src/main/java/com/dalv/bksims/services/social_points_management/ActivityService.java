@@ -268,8 +268,8 @@ public class ActivityService {
             }
 
             List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
-            if (activityIds.size() == 0) {
-                return activities;
+            if (activityIds.isEmpty()) {
+                return null;
             }
 
             List<Activity> filteredActivities = activities.getContent().stream()
