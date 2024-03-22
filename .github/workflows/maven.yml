@@ -10,12 +10,18 @@ name: Java CI with Maven
 
 env:
   BACKEND_DIR: ./backend
+  AWS_REGION: ap-southeast-1
+  DOCKERHUB_REPO: luongla/bk-sims-be
 
 on:
   push:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
 
 jobs:
   build:
@@ -29,9 +35,25 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: maven
-      - name: Build with Maven
-        run: mvn -B package --file ${{ env.BACKEND_DIR }}/pom.xml
 
-      # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-      - name: Update dependency graph
-        uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
+      # - name: Create env file
+      #   run:
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-southeast-1
+          role-to-assume: arn:aws:iam::059630626080:role/GitHubAction-SSMFullAccess
+
+      - name: Test AWS connection
+        run: |
+          aws sts get-caller-identity
+          aws ssm get-parameter --name ".env.properties"
+
+      - name: Login to DockerHub
+        run: docker login -u ${{secrets.DOCKERHUB_USER_NAME}} -p ${{secrets.DOCKERHUB_ACCESS_TOKEN}}
+
+      # - name:
+
+      # - name: Build with Maven
+      #   run: mvn -B package --file ${{ env.BACKEND_DIR }}/pom.xml
