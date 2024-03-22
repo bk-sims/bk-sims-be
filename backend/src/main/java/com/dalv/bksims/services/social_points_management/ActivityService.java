@@ -4,10 +4,10 @@ import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
-import com.dalv.bksims.models.entities.social_points_management.ActivityType;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
@@ -21,9 +21,6 @@ import com.dalv.bksims.validations.DateValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.kaczmarzyk.spring.data.jpa.domain.LessThanOrEqual;
-import net.kaczmarzyk.spring.data.jpa.utils.SpecificationBuilder;
-import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.joda.time.LocalDate;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -248,8 +245,15 @@ public class ActivityService {
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
-    public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order, String getMine) {
-        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by("startDate").descending();
+    public Page<Activity> findActivityWithPagination(
+            Specification<Activity> activitySpec,
+            int offset,
+            int pageSize,
+            String order,
+            String getMine
+    ) {
+        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by(
+                "startDate").descending();
         Pageable pageRequest = PageRequest.of(offset - 1, pageSize, sort);
 
         Page<Activity> activities = null;
@@ -273,7 +277,8 @@ public class ActivityService {
             }
 
             List<Activity> filteredActivities = activities.getContent().stream()
-                    .filter(activity -> Arrays.stream(activityIds.toArray()).anyMatch(id -> id.equals(activity.getId()))).toList();
+                    .filter(activity -> Arrays.stream(activityIds.toArray())
+                            .anyMatch(id -> id.equals(activity.getId()))).toList();
             return new PageImpl<>(filteredActivities, pageRequest, activities.getTotalElements());
         }
 
@@ -286,7 +291,8 @@ public class ActivityService {
         Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
 
         if (activity == null) {
-            throw new EntityNotFoundException("Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
         }
         if (user.isEmpty()) {
             throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
@@ -298,6 +304,7 @@ public class ActivityService {
         activityParticipationId.setActivityId(activity.getId());
         activityParticipationId.setUserId(user.get().getId());
         activityParticipation.setActivityParticipationId(activityParticipationId);
+        activityParticipation.setPointsApproved(0);
 
         activityParticipation.setActivity(activity);
         activityParticipation.setUser(user.get());
@@ -316,16 +323,23 @@ public class ActivityService {
         Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
 
         if (activity == null) {
-            throw new EntityNotFoundException("Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
         }
         if (user.isEmpty()) {
             throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
         }
 
-        ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder().activityId(activity.getId()).userId(user.get().getId()).build();
-        Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(activityParticipationId);
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder()
+                .activityId(activity.getId())
+                .userId(user.get().getId())
+                .build();
+        Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(
+                activityParticipationId
+        );
         if (activityParticipation.isEmpty()) {
-            throw new EntityNotFoundException("No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
+            throw new EntityNotFoundException(
+                    "No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
         }
 
         activityParticipationRepo.delete(activityParticipation.get());
@@ -333,4 +347,14 @@ public class ActivityService {
         return activityParticipation.get();
     }
 
+    public List<ParticipantsResponse> getParticipantsByActivityTitle(String title) {
+        Activity activity = activityRepo.findOneByTitle(title);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with title " + title + " not found");
+        }
+
+        return activityParticipationRepo.findParticipantsByActivityTitle(title);
+    }
 }

@@ -1,12 +1,11 @@
 package com.dalv.bksims.controllers.social_points_management;
 
-import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
-import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,8 +32,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @Tag(name = "Activity")
@@ -78,17 +77,23 @@ public class ActivityController {
     ) {
         return switch (status) {
             case "OPEN" -> {
-                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(AcitivityWithOpenStatus);
-                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination( finalActivitySpec , offset, pageSize, order, getMine);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(
+                        AcitivityWithOpenStatus);
+                Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(
+                        finalActivitySpec, offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
-                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(AcitivityWithClosedStatus);
-                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(finalActivitySpec , offset, pageSize, order, getMine);
+                Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(
+                        AcitivityWithClosedStatus);
+                Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(
+                        finalActivitySpec, offset, pageSize, order, getMine);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
-                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec, offset, pageSize, order, getMine);
+                Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
+                                                                                                     offset, pageSize,
+                                                                                                     order, getMine);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
@@ -109,7 +114,8 @@ public class ActivityController {
     public ResponseEntity<ActivityParticipationId> registerActivity(@RequestBody Map<String, String> payload) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
-        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(UUID.fromString(payload.get("activityId")), userEmail);
+        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(
+                UUID.fromString(payload.get("activityId")), userEmail);
         ActivityParticipation activityParticipation = activityService.registerActivity(activityRegistrationRequest);
         return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
     }
@@ -119,8 +125,16 @@ public class ActivityController {
     public ResponseEntity<ActivityParticipationId> deregisterActivity(@RequestBody Map<String, String> payload) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
-        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(UUID.fromString(payload.get("activityId")), userEmail);
+        ActivityRegistrationRequest activityRegistrationRequest = new ActivityRegistrationRequest(
+                UUID.fromString(payload.get("activityId")), userEmail);
         ActivityParticipation activityParticipation = activityService.deregisterActivity(activityRegistrationRequest);
         return new ResponseEntity<>(activityParticipation.getActivityParticipationId(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{title}/participants")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<List<ParticipantsResponse>> getParticipantsByActivityTitle(@PathVariable String title) {
+        List<ParticipantsResponse> participants = activityService.getParticipantsByActivityTitle(title);
+        return new ResponseEntity<>(participants, HttpStatus.OK);
     }
 }
