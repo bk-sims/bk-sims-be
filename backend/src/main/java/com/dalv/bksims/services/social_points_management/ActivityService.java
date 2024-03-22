@@ -4,6 +4,7 @@ import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
@@ -303,6 +304,7 @@ public class ActivityService {
         activityParticipationId.setActivityId(activity.getId());
         activityParticipationId.setUserId(user.get().getId());
         activityParticipation.setActivityParticipationId(activityParticipationId);
+        activityParticipation.setPointsApproved(0);
 
         activityParticipation.setActivity(activity);
         activityParticipation.setUser(user.get());
@@ -333,7 +335,8 @@ public class ActivityService {
                 .userId(user.get().getId())
                 .build();
         Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(
-                activityParticipationId);
+                activityParticipationId
+        );
         if (activityParticipation.isEmpty()) {
             throw new EntityNotFoundException(
                     "No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
@@ -344,7 +347,7 @@ public class ActivityService {
         return activityParticipation.get();
     }
 
-    public List<User> getParticipantsByActivityTitle(String title) {
+    public List<ParticipantsResponse> getParticipantsByActivityTitle(String title) {
         Activity activity = activityRepo.findOneByTitle(title);
 
         if (activity == null) {
@@ -352,6 +355,6 @@ public class ActivityService {
                     "Activity with title " + title + " not found");
         }
 
-        return activityParticipationRepo.findUserByActivityTitle(title);
+        return activityParticipationRepo.findParticipantsByActivityTitle(title);
     }
 }

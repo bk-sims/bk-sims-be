@@ -2,10 +2,10 @@ package com.dalv.bksims.controllers.social_points_management;
 
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
-import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -133,8 +133,8 @@ public class ActivityController {
 
     @GetMapping("/{title}/participants")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<List<User>> getParticipantsByActivityTitle(@PathVariable String title) {
-        List<User> participants = activityService.getParticipantsByActivityTitle(title);
+    public ResponseEntity<List<ParticipantsResponse>> getParticipantsByActivityTitle(@PathVariable String title) {
+        List<ParticipantsResponse> participants = activityService.getParticipantsByActivityTitle(title);
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
 }
