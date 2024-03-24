@@ -64,7 +64,7 @@ public class ActivityController {
             @PathVariable int pageSize,
             @RequestParam(value = "order", required = false, defaultValue = "ASC") String order,
             @RequestParam(value = "status", required = false, defaultValue = "ALL") String status,
-            @RequestParam(value = "getMine", required = false, defaultValue = "FALSE") String getMine,
+            @RequestParam(value = "type", required = false, defaultValue = "ALL") String type,
             @Or({
                     @Spec(path = "location", params = "query", spec = Like.class),
                     @Spec(path = "title", params = "query", spec = Like.class)
@@ -80,20 +80,20 @@ public class ActivityController {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithOpenStatus : activitySpec.and(
                         AcitivityWithOpenStatus);
                 Page<Activity> activitiesWithPaginationOpen = activityService.findActivityWithPagination(
-                        finalActivitySpec, offset, pageSize, order, getMine);
+                        finalActivitySpec, offset, pageSize, order, type);
                 yield new ResponseEntity<>(activitiesWithPaginationOpen, HttpStatus.OK);
             }
             case "CLOSED" -> {
                 Specification<Activity> finalActivitySpec = activitySpec == null ? AcitivityWithClosedStatus : activitySpec.and(
                         AcitivityWithClosedStatus);
                 Page<Activity> activitiesWithPaginationClosed = activityService.findActivityWithPagination(
-                        finalActivitySpec, offset, pageSize, order, getMine);
+                        finalActivitySpec, offset, pageSize, order, type);
                 yield new ResponseEntity<>(activitiesWithPaginationClosed, HttpStatus.OK);
             }
             default -> {
                 Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
                                                                                                      offset, pageSize,
-                                                                                                     order, getMine);
+                                                                                                     order, type);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };

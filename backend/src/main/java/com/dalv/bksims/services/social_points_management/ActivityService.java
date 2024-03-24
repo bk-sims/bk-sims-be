@@ -23,7 +23,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -143,7 +143,26 @@ public class ActivityService {
                 .build();
 
         activityRepo.save(activity);
+
+        // Add owner as a participant of the activity
+        addUserToActivityParticipation(owner, activity);
         return activity;
+    }
+
+    @Transactional
+    public ActivityParticipation addUserToActivityParticipation(User user, Activity activity) {
+        ActivityParticipation activityParticipation = new ActivityParticipation();
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId();
+
+        activityParticipationId.setActivityId(activity.getId());
+        activityParticipationId.setUserId(user.getId());
+        activityParticipation.setActivityParticipationId(activityParticipationId);
+        activityParticipation.setPointsApproved(0);
+
+        activityParticipation.setActivity(activity);
+        activityParticipation.setUser(user);
+
+        return activityParticipationRepo.save(activityParticipation);
     }
 
     @Transactional
@@ -256,7 +275,7 @@ public class ActivityService {
             int offset,
             int pageSize,
             String order,
-            String getMine
+            String type
     ) {
         Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by(
                 "startDate").descending();
@@ -269,7 +288,7 @@ public class ActivityService {
             activities = activityRepo.findAll(activitySpec, pageRequest);
         }
 
-        if (getMine.equals("TRUE")) {
+        if (type.equals("MY")) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String userEmail = authentication.getName();
             Optional<User> user = userRepo.findByEmail(userEmail);
@@ -279,7 +298,7 @@ public class ActivityService {
 
             List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
             if (activityIds.size() == 0) {
-                return activities;
+                return new PageImpl<>(new ArrayList<>(), pageRequest, 0);
             }
 
             List<Activity> filteredActivities = activities.getContent().stream()
@@ -304,23 +323,7 @@ public class ActivityService {
             throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
         }
 
-        ActivityParticipation activityParticipation = new ActivityParticipation();
-        ActivityParticipationId activityParticipationId = new ActivityParticipationId();
-
-        activityParticipationId.setActivityId(activity.getId());
-        activityParticipationId.setUserId(user.get().getId());
-        activityParticipation.setActivityParticipationId(activityParticipationId);
-        activityParticipation.setPointsApproved(0);
-
-        activityParticipation.setActivity(activity);
-        activityParticipation.setUser(user.get());
-
-        try {
-            activityParticipationRepo.save(activityParticipation);
-        } catch (DataIntegrityViolationException e) {
-            throw e;
-        }
-        return activityParticipation;
+        return addUserToActivityParticipation(user.get(), activity);
     }
 
     @Transactional
