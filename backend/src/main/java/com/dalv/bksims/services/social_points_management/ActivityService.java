@@ -237,6 +237,10 @@ public class ActivityService {
         activity.setRegulationsFileName(regulationsFileName);
         activity.setRegulationsFileUrl(regulationsFileUrl);
 
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
+            activity.setStatus("PENDING");
+        }
+
         activityRepo.save(activity);
         return activity;
     }
@@ -373,9 +377,9 @@ public class ActivityService {
             throw new EntityNotFoundException("User with ID " + userEmail + " not found");
         }
 
-        if (!Objects.equals(activity.getStatus(), "PENDING")) {
+        if (Objects.equals(activity.getStatus(), "OPEN")) {
             throw new ActivityStatusViolationException(
-                    "Admin can only approve activity with status PENDING");
+                    "Admin cannot approve activity with status OPEN");
         }
 
         activity.setStatus("OPEN");
@@ -395,9 +399,9 @@ public class ActivityService {
             throw new EntityNotFoundException("User with ID " + userEmail + " not found");
         }
 
-        if (!Objects.equals(activity.getStatus(), "PENDING")) {
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
             throw new ActivityStatusViolationException(
-                    "Admin can only reject activity with status PENDING");
+                    "Admin cannot reject activity with status REJECTED");
         }
 
         activity.setStatus("REJECTED");
