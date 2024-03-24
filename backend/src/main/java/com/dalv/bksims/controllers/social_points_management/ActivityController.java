@@ -137,4 +137,26 @@ public class ActivityController {
         List<ParticipantsResponse> participants = activityService.getParticipantsByActivityTitle(title);
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
+
+    @PostMapping("/approve")
+    @Secured({"ROLE_ADMIN"})
+    public ResponseEntity<Activity> approveActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+
+        UUID activityId = UUID.fromString(payload.get("activityId"));
+        Activity activity = activityService.approveActivity(activityId, userEmail);
+        return new ResponseEntity<>(activity, HttpStatus.OK);
+    }
+
+    @PostMapping("/reject")
+    @Secured({"ROLE_ADMIN"})
+    public ResponseEntity<Activity> rejectActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+
+        UUID activityId = UUID.fromString(payload.get("activityId"));
+        Activity activity = activityService.rejectActivity(activityId, userEmail);
+        return new ResponseEntity<>(activity, HttpStatus.OK);
+    }
 }

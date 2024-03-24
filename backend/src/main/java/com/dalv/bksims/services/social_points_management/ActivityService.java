@@ -1,5 +1,6 @@
 package com.dalv.bksims.services.social_points_management;
 
+import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
@@ -37,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -235,6 +237,10 @@ public class ActivityService {
         activity.setRegulationsFileName(regulationsFileName);
         activity.setRegulationsFileUrl(regulationsFileUrl);
 
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
+            activity.setStatus("PENDING");
+        }
+
         activityRepo.save(activity);
         return activity;
     }
@@ -356,5 +362,49 @@ public class ActivityService {
         }
 
         return activityParticipationRepo.findParticipantsByActivityTitle(title);
+    }
+
+    @Transactional
+    public Activity approveActivity(UUID activityId, String userEmail) {
+        Activity activity = activityRepo.findOneById(activityId);
+        Optional<User> user = userRepo.findByEmail(userEmail);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityId + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + userEmail + " not found");
+        }
+
+        if (Objects.equals(activity.getStatus(), "OPEN")) {
+            throw new ActivityStatusViolationException(
+                    "Admin cannot approve activity with status OPEN");
+        }
+
+        activity.setStatus("OPEN");
+        return activityRepo.save(activity);
+    }
+
+    @Transactional
+    public Activity rejectActivity(UUID activityId, String userEmail) {
+        Activity activity = activityRepo.findOneById(activityId);
+        Optional<User> user = userRepo.findByEmail(userEmail);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityId + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + userEmail + " not found");
+        }
+
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
+            throw new ActivityStatusViolationException(
+                    "Admin cannot reject activity with status REJECTED");
+        }
+
+        activity.setStatus("REJECTED");
+        return activityRepo.save(activity);
     }
 }

@@ -1,5 +1,6 @@
 package com.dalv.bksims.exceptionhandlers;
 
+import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.AuthException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
@@ -122,6 +123,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidFileExtensionException.class)
     public ProblemDetail handleInvalidFileExtensionException(InvalidFileExtensionException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ActivityStatusViolationException.class)
+    public ProblemDetail handleActivityStatusViolationException(ActivityStatusViolationException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;
