@@ -3,6 +3,7 @@ package com.dalv.bksims.controllers.social_points_management;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
+import com.dalv.bksims.models.dtos.social_points_management.RemoveParticipantsRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
@@ -22,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -138,25 +140,29 @@ public class ActivityController {
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
 
+    @DeleteMapping("/participants")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<List<ParticipantsResponse>> removeParticipantsByActivityTitle(@RequestBody RemoveParticipantsRequest request) {
+        UUID activityId = UUID.fromString(request.activityId());
+
+        List<ParticipantsResponse> participants = activityService.removeParticipantsByActivityTitle(
+                activityId, request.participantsIds());
+        return new ResponseEntity<>(participants, HttpStatus.OK);
+    }
+
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})
     public ResponseEntity<Activity> approveActivity(@RequestBody Map<String, String> payload) throws Exception {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = authentication.getName();
-
         UUID activityId = UUID.fromString(payload.get("activityId"));
-        Activity activity = activityService.approveActivity(activityId, userEmail);
+        Activity activity = activityService.approveActivity(activityId);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 
     @PostMapping("/reject")
     @Secured({"ROLE_ADMIN"})
     public ResponseEntity<Activity> rejectActivity(@RequestBody Map<String, String> payload) throws Exception {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = authentication.getName();
-
         UUID activityId = UUID.fromString(payload.get("activityId"));
-        Activity activity = activityService.rejectActivity(activityId, userEmail);
+        Activity activity = activityService.rejectActivity(activityId);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 }
