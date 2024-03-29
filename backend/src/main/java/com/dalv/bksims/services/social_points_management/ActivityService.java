@@ -3,6 +3,7 @@ package com.dalv.bksims.services.social_points_management;
 import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
+import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
@@ -368,16 +369,44 @@ public class ActivityService {
     }
 
     @Transactional
-    public Activity approveActivity(UUID activityId, String userEmail) {
+    public List<ParticipantsResponse> removeParticipantsByActivityTitle(UUID activityId, List<UUID> participantsIds) {
         Activity activity = activityRepo.findOneById(activityId);
-        Optional<User> user = userRepo.findByEmail(userEmail);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with id " + activityId + " not found");
+        }
+
+        List<ParticipantsResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
+                activityId, participantsIds
+        );
+
+        // Check if all requested IDs were found
+        List<UUID> foundIds = participants.stream()
+                .map(participantsResponse -> participantsResponse.user().getId())
+                .toList();
+
+        List<UUID> notFoundIds = participantsIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!notFoundIds.isEmpty()) {
+            throw new ParticipantsNotFoundException("Participants not found for IDs: " + notFoundIds);
+        }
+
+        activityParticipationRepo.deleteByUserIdIn(foundIds);
+
+        return activityParticipationRepo.findParticipantsByActivityId(
+                activityId);
+    }
+
+    @Transactional
+    public Activity approveActivity(UUID activityId) {
+        Activity activity = activityRepo.findOneById(activityId);
 
         if (activity == null) {
             throw new EntityNotFoundException(
                     "Activity with ID " + activityId + " not found");
-        }
-        if (user.isEmpty()) {
-            throw new EntityNotFoundException("User with ID " + userEmail + " not found");
         }
 
         if (Objects.equals(activity.getStatus(), "OPEN")) {
@@ -390,16 +419,12 @@ public class ActivityService {
     }
 
     @Transactional
-    public Activity rejectActivity(UUID activityId, String userEmail) {
+    public Activity rejectActivity(UUID activityId) {
         Activity activity = activityRepo.findOneById(activityId);
-        Optional<User> user = userRepo.findByEmail(userEmail);
 
         if (activity == null) {
             throw new EntityNotFoundException(
                     "Activity with ID " + activityId + " not found");
-        }
-        if (user.isEmpty()) {
-            throw new EntityNotFoundException("User with ID " + userEmail + " not found");
         }
 
         if (Objects.equals(activity.getStatus(), "REJECTED")) {

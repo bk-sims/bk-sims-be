@@ -9,6 +9,7 @@ import com.dalv.bksims.exceptions.FileTooLargeException;
 import com.dalv.bksims.exceptions.InvalidDateFormatException;
 import com.dalv.bksims.exceptions.InvalidDateRangeException;
 import com.dalv.bksims.exceptions.InvalidFileExtensionException;
+import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -130,6 +131,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ActivityStatusViolationException.class)
     public ProblemDetail handleActivityStatusViolationException(ActivityStatusViolationException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ParticipantsNotFoundException.class)
+    public ProblemDetail handleParticipantsNotFoundException(ParticipantsNotFoundException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;
