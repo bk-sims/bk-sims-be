@@ -36,24 +36,23 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      # - name: Create env file
-      #   run:
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ap-southeast-1
-          role-to-assume: arn:aws:iam::059630626080:role/GitHubAction-SSMFullAccess
-
-      - name: Test AWS connection
+      - name: Update application properties
         run: |
-          aws sts get-caller-identity
-          aws ssm get-parameter --name ".env.properties"
+          cd $BACKEND_DIR/src/main/resources
+          sed -i "s|<db_url>|${{ secrets.DB_URL }}|g" application-prod.yml
+          sed -i "s|<db_username>|${{ secrets.DB_USERNAME }}|g" application-prod.yml
+          sed -i "s|<db_password>|${{ secrets.DB_PASSWORD }}|g" application-prod.yml
+          sed -i "s|<aws_s3_key_id>|${{ secrets.AWS_S3_KEY_ID }}|g" application-prod.yml
+          sed -i "s|<aws_s3_key_secret>|${{ secrets.AWS_S3_KEY_SECRET }}|g" application-prod.yml
+          sed -i "s|<jwt_secret_key>|${{ secrets.JWT_SECRET_KEY }}|g" application-prod.yml
 
       - name: Login to DockerHub
         run: docker login -u ${{secrets.DOCKERHUB_USER_NAME}} -p ${{secrets.DOCKERHUB_ACCESS_TOKEN}}
 
-      # - name:
-
-      # - name: Build with Maven
-      #   run: mvn -B package --file ${{ env.BACKEND_DIR }}/pom.xml
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ env.BACKEND_DIR }}
+          push: true
+          tags: luongla/bk-sims-be:latest, luongla/bk-sims-be:${{ github.run_number }}
