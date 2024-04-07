@@ -14,8 +14,6 @@ env:
   DOCKERHUB_REPO: luongla/bk-sims-be
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
 
