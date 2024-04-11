@@ -33,3 +33,5 @@ jobs:
             ${{ vars.ACTIVITY_AUTHENTICATION_SERVICE_IP }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           playbook: deploy.yml
+          extra-vars: |
+            image_name=bk-sims-auth-activity-service

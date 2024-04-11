@@ -11,7 +11,7 @@ name: CI pipeline
 env:
   BACKEND_DIR: ./backend
   AWS_REGION: ap-southeast-1
-  DOCKERHUB_REPO: luongla/bk-sims-be
+  DOCKERHUB_REPO: luongla/bk-sims-auth-activity-service
 
 on:
   pull_request:
@@ -53,4 +53,4 @@ jobs:
         with:
           context: ${{ env.BACKEND_DIR }}
           push: true
-          tags: luongla/bk-sims-be:latest, luongla/bk-sims-be:${{ github.run_number }}
+          tags: luongla/bk-sims-auth-activity-service:latest, luongla/bk-sims-auth-activity-service:${{ github.run_number }}
