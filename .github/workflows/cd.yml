@@ -29,8 +29,7 @@ jobs:
         uses: dawidd6/action-ansible-playbook@v2
         with:
           directory: ./ansible-playbook
-          inventory: |
-            ${{ vars.ACTIVITY_AUTHENTICATION_SERVICE_IP }}
+          inventory: ${{ secrets.ACTIVITY_AUTHENTICATION_SERVICE_IP }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           playbook: deploy.yml
           extra-vars: |
