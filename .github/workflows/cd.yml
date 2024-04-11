@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Deploy
+name: CD pipeline
 
 on:
   push:
