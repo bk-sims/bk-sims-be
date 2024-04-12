@@ -30,15 +30,17 @@ public class AppConfiguration {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins("http://localhost:5173")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE")
-                        .allowedHeaders("Origin", "Content-Type", "Accept", "Authorization")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                        .allowedHeaders("*")
                         .allowCredentials(true);
             }
         };
     }
 
     @Bean
-    public HandlerMethodArgumentResolver specificationArgumentResolver() { return new SpecificationArgumentResolver(); }
+    public HandlerMethodArgumentResolver specificationArgumentResolver() {
+        return new SpecificationArgumentResolver();
+    }
 
     @Bean
     public UserDetailsService userDetailsService() {

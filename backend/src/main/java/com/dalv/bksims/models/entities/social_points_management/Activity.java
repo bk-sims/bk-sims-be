@@ -1,5 +1,6 @@
 package com.dalv.bksims.models.entities.social_points_management;
 
+import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
@@ -67,7 +68,9 @@ public class Activity {
 
     private String activityType;
 
-    private int ownerId;
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
     private String status = Status.PENDING.toString();
 

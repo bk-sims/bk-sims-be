@@ -20,6 +20,20 @@ CREATE TABLE organization (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE "user" (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(255) UNIQUE NOT NULL,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    avatar_file_url VARCHAR(255) UNIQUE,
+    gender VARCHAR(20) NOT NULL,
+    dob DATE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    phone VARCHAR(255) UNIQUE NOT NULL
+);
+
 -- owner_id and organization_id will be changed to foreign key later
 CREATE TABLE activity (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -38,11 +52,21 @@ CREATE TABLE activity (
     registration_start_date DATE, 
     registration_end_date DATE,
     activity_type VARCHAR(255),
-    owner_id INT,
+    owner_id UUID NOT NULL,
     organization_id UUID,
     status VARCHAR(20) NOT NULL,
     created_at DATE NOT NULL,
-    FOREIGN KEY (organization_id) REFERENCES organization (id)
+    CONSTRAINT fk_activity_organization FOREIGN KEY (organization_id) REFERENCES organization (id),
+    CONSTRAINT fk_activity_owner FOREIGN KEY (owner_id) REFERENCES "user" (id)
+);
+
+CREATE TABLE activity_participation(
+    activity_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    points_approved INT NOT NULL,
+    CONSTRAINT fk_participation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
+    CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    PRIMARY KEY (activity_id, user_id)
 );
 
 CREATE TABLE program (
@@ -55,49 +79,34 @@ CREATE TABLE department (
     name VARCHAR(255) UNIQUE NOT NULL
 );
 
-CREATE TABLE "user" (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    code VARCHAR(255) UNIQUE NOT NULL,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    avatar_file_url VARCHAR(255) UNIQUE,
-    gender VARCHAR(20) NOT NULL,
-    dob DATE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL,
-    phone VARCHAR(255) UNIQUE NOT NULL
-);
-
-
 CREATE TABLE student (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     program_id UUID NOT NULL,
     department_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id),
-    FOREIGN KEY (program_id) REFERENCES program(id),
-    FOREIGN KEY (department_id) REFERENCES department(id)
+    CONSTRAINT fk_student_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    CONSTRAINT fk_student_program FOREIGN KEY (program_id) REFERENCES program(id),
+    CONSTRAINT fk_student_department FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
 CREATE TABLE lecturer (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     department_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id),
-    FOREIGN KEY (department_id) REFERENCES department(id)
+    CONSTRAINT fk_lecturer_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    CONSTRAINT fk_lecturer_department FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
 CREATE TABLE admin (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id)
+    CONSTRAINT fk_admin_user FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE aao (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user"(id)
+    CONSTRAINT fk_admin_aao FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE token (
@@ -106,7 +115,7 @@ CREATE TABLE token (
     expired BOOLEAN NOT NULL,
     revoked BOOLEAN NOT NULL,
     user_id UUID NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES "user" (id)
+    CONSTRAINT fk_token_user FOREIGN KEY (user_id) REFERENCES "user" (id)
 );
 
 
@@ -215,6 +224,21 @@ INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, passwor
 INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
 (uuid_generate_v4(), '3', 'System', 'Student', 'Male', '1999-05-15', 'student@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567892');
 
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '4', 'Student', 'One', 'Female', '1999-05-15', 'student1@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567893');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '5', 'Student', 'Two', 'Male', '1999-05-15', 'student2@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567894');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '6', 'Student', 'Three', 'Female', '1999-05-15', 'student3@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567895');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '7', 'Student', 'Four', 'Male', '1999-05-15', 'student4@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567896');
+
+INSERT INTO "user" (id, code, first_name, last_name, gender, dob, email, password, role, phone) VALUES
+(uuid_generate_v4(), '8', 'Student', 'Five', 'Female', '1999-05-15', 'student5@hcmut.edu.vn', '$2a$10$0VhhG4kKYN8SIRLOzlX7ouK4z.JVF0qYnVZrx4c8v4YoVNJ93gL9O', 'STUDENT', '1234567897');
+
 INSERT INTO admin (id, user_id) VALUES
 (uuid_generate_v4(), (SELECT id FROM "user" WHERE email = 'admin@hcmut.edu.vn'));
 
@@ -233,3 +257,42 @@ INSERT INTO student (id, user_id, program_id, department_id) VALUES
     (SELECT id FROM department WHERE name = 'Computer Science')
 );
 
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student1@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'Talented Engineer Program'),
+    (SELECT id FROM department WHERE name = 'Aerospace Engineering')
+);
+
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student2@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'Japan-Oriented Program'),
+    (SELECT id FROM department WHERE name = 'Construction Materials Engineering')
+);
+
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student3@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'PFIEV'),
+    (SELECT id FROM department WHERE name = 'Transportation Engineering')
+);
+
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student4@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'High Quality Program'),
+    (SELECT id FROM department WHERE name = 'Food Technology')
+);
+
+INSERT INTO student (id, user_id, program_id, department_id) VALUES
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'student5@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'General Program'),
+    (SELECT id FROM department WHERE name = 'Civil Engineering')
+);
