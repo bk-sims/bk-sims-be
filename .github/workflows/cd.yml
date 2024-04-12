@@ -1,0 +1,35 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: CD pipeline
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy authentication and activity service
+        uses: dawidd6/action-ansible-playbook@v2
+        with:
+          directory: ./ansible-playbook
+          inventory: ${{ secrets.ACTIVITY_AUTHENTICATION_SERVICE_IP }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          playbook: deploy.yml
+          options: |
+            --extra-vars "image_name=bk-sims-auth-activity-service"

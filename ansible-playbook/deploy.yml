@@ -1,0 +1,38 @@
+---
+- hosts: all
+  become: true
+  remote_user: luongla
+
+  tasks:
+    - name: Find existing containers running on port 80
+      shell: docker ps -q --filter "ancestor=luongla/{{ image_name }}:latest" --filter "status=running"
+      register: existing_containers
+      ignore_errors: true
+
+    - name: Stop and remove existing containers on port 80
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      with_items: "{{ existing_containers.stdout_lines }}"
+      when: existing_containers.stdout_lines | length > 0
+
+    - name: Pull the latest image
+      docker_image:
+        name: luongla/{{ image_name }}
+        source: pull
+
+    - name: Run the new container
+      docker_container:
+        name: "{{ image_name }}"
+        image: luongla/{{ image_name }}:latest
+        state: started
+        ports:
+          - "80:8081"
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+
+    - name: Remove unused Docker images
+      shell: docker image prune -f
+
+    - name: Remove stopped Docker containers
+      shell: docker container prune -f
