@@ -24,7 +24,6 @@ jobs:
       - name: Install CockroachDB client
         run: |
           sudo apt-get update
-          sudo apt-get install cockroach
           mkdir -p /usr/local/lib/cockroach
           cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/
           cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/
