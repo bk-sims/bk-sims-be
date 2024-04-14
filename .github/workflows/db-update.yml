@@ -7,7 +7,7 @@ env:
 on:
   push:
     branches: ["main"]
-    paths: ["database/init-cockroach.sql"]
+    paths: ["database/init-cockroach.sql", ".github/workflows/db-update.yml"]
 
 permissions:
   id-token: write # This is required for requesting the JWT
@@ -24,9 +24,10 @@ jobs:
       - name: Install CockroachDB client
         run: |
           sudo apt-get update
-          mkdir -p /usr/local/lib/cockroach
-          cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/
-          cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/
+          sudo apt-get install cockroach
+          sudo mkdir -p /usr/local/lib/cockroach
+          sudo cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/
+          sudo cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/
           echo 'export LD_LIBRARY_PATH=/usr/local/lib/cockroach:$LD_LIBRARY_PATH' >> $GITHUB_ENV
 
       - name: Update application properties
