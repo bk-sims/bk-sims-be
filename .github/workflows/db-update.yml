@@ -1,11 +1,3 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 name: Update Cockroach DB
 
 env:
@@ -22,13 +14,22 @@ permissions:
   contents: read # This is required for actions/checkout
 
 jobs:
-  deploy:
+  deploy-database:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install CockroachDB client (with library path)
+        run: |
+          sudo apt-get update
+          sudo apt-get install cockroach
+          mkdir -p /usr/local/lib/cockroach
+          cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/
+          cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/
+          echo 'export LD_LIBRARY_PATH=/usr/local/lib/cockroach:$LD_LIBRARY_PATH' >> $GITHUB_ENV
+
       - name: Update application properties
         run: |
-          cockroach sql --url 'postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=${{ env.CERT_DIR }}/root.crt' -f ${{ env.DATABASE_DIR }}/init-cockroach.sql
+          /usr/local/bin/cockroach sql --url 'postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=${{ env.CERT_DIR }}/root.crt' -f ${{ env.DATABASE_DIR }}/init-cockroach.sql
