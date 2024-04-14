@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.UUID;
+
 public record ActivityRequest(
         @NotBlank(message = "Title cannot be blank")
         @Size(min = 2, max = 50, message = "Title length must be from 2 to 50")

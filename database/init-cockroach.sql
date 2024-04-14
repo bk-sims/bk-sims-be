@@ -1,8 +1,8 @@
+-- Drop the database if it exists
+DROP DATABASE IF EXISTS bk_sims;
+
 -- Create the database
 CREATE DATABASE bk_sims;
-
--- Connect to the newly created database
-\c bk_sims;
 
 -- Enable the 'uuid-ossp' extension for generating UUIDs (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

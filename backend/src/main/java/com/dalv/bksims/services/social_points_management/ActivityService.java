@@ -1,32 +1,47 @@
 package com.dalv.bksims.services.social_points_management;
 
+import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
+import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
+import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
+import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.Status;
+import com.dalv.bksims.models.repositories.social_points_management.ActivityParticipationRepository;
 import com.dalv.bksims.models.repositories.social_points_management.ActivityRepository;
 import com.dalv.bksims.models.repositories.social_points_management.OrganizationRepository;
+import com.dalv.bksims.models.repositories.user.UserRepository;
 import com.dalv.bksims.services.common.S3Service;
 import com.dalv.bksims.validations.ActivityValidator;
 import com.dalv.bksims.validations.DateValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.kaczmarzyk.spring.data.jpa.domain.LessThanOrEqual;
-import net.kaczmarzyk.spring.data.jpa.utils.SpecificationBuilder;
-import net.kaczmarzyk.spring.data.jpa.web.annotation.Spec;
 import org.joda.time.LocalDate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/activities")
@@ -35,6 +50,10 @@ import java.util.List;
 public class ActivityService {
 
     private final ActivityRepository activityRepo;
+
+    private final UserRepository userRepo;
+
+    private final ActivityParticipationRepository activityParticipationRepo;
 
     private final OrganizationRepository organizationRepo;
 
@@ -53,6 +72,16 @@ public class ActivityService {
 
         if (organization == null) {
             throw new EntityNotFoundException("Organization with name " + organizationRequestName + " not found");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+
+        User owner = userRepo.findByEmail(userEmail).orElseThrow(
+                () -> new EntityNotFoundException("User with id " + organizationRequestName + " not found"));
+
+        if (owner == null) {
+            throw new EntityNotFoundException("Owner with email " + userEmail + " not found");
         }
 
         String organizationName = organization.getName();
@@ -86,6 +115,11 @@ public class ActivityService {
         String regulationsFileUrl = (regulationsFileName == null) ? null : s3Service.getFileUrl(regulationsFileName,
                                                                                                 organizationName + "/");
 
+        String activityType = null;
+
+        if (activityRequest.activityType() != null && !activityRequest.activityType().isBlank()) {
+            activityType = activityRequest.activityType();
+        }
 
         Activity activity = Activity.builder()
                 .title(activityRequest.title())
@@ -102,18 +136,38 @@ public class ActivityService {
                 .regulationsFileUrl(regulationsFileUrl)
                 .registrationStartDate(activityRequest.registrationStartDate())
                 .registrationEndDate(activityRequest.registrationEndDate())
-                .activityType(activityRequest.activityType())
-                .status(Status.PENDING)
+                .activityType(activityType)
+                .status(Status.PENDING.toString())
                 .createdAt(LocalDate.now().toString())
                 .organization(organization)
+                .owner(owner)
                 .build();
 
         activityRepo.save(activity);
+
+        // Add owner as a participant of the activity
+        addUserToActivityParticipation(owner, activity);
         return activity;
     }
 
     @Transactional
-    public Activity updateActivityInfo(String title, ActivityRequest activityUpdateRequest) {
+    public ActivityParticipation addUserToActivityParticipation(User user, Activity activity) {
+        ActivityParticipation activityParticipation = new ActivityParticipation();
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId();
+
+        activityParticipationId.setActivityId(activity.getId());
+        activityParticipationId.setUserId(user.getId());
+        activityParticipation.setActivityParticipationId(activityParticipationId);
+        activityParticipation.setPointsApproved(0);
+
+        activityParticipation.setActivity(activity);
+        activityParticipation.setUser(user);
+
+        return activityParticipationRepo.save(activityParticipation);
+    }
+
+    @Transactional
+    public Activity updateActivityByTitle(String title, ActivityRequest activityUpdateRequest) {
         Activity activity = activityRepo.findOneByTitle(title);
         if (activity == null) {
             throw new EntityNotFoundException("Activity with title " + title + " not found!");
@@ -125,13 +179,19 @@ public class ActivityService {
         activity.setCanParticipantsInvite(activityUpdateRequest.canParticipantsInvite());
         activity.setPoints(activityUpdateRequest.points());
 
+        String activityType = null;
+        if (activityUpdateRequest.activityType() != null && !activityUpdateRequest.activityType().isBlank()) {
+            activityType = activityUpdateRequest.activityType();
+        }
+
+        activity.setActivityType(activityType);
+
         // Check organization name
-        String organizationUpdateRequestName = (activityUpdateRequest.organization() == null) ? activity.getOrganization()
-                .getName() : activityUpdateRequest.organization();
-        Organization organization = organizationRepo.findByName(organizationUpdateRequestName);
+        String organizationRequestName = (activityUpdateRequest.organization() == null) ? "Other School-level Units" : activityUpdateRequest.organization();
+        Organization organization = organizationRepo.findByName(organizationRequestName);
 
         if (organization == null) {
-            throw new EntityNotFoundException("Organization with name " + organizationUpdateRequestName + " not found");
+            throw new EntityNotFoundException("Organization with name " + organizationRequestName + " not found");
         }
 
         String organizationName = organization.getName();
@@ -149,38 +209,56 @@ public class ActivityService {
         activity.setRegistrationStartDate(activityUpdateRequest.registrationStartDate());
         activity.setRegistrationEndDate(activityUpdateRequest.registrationEndDate());
 
-        // Check validity of banner file
+        // Update banner file
         MultipartFile bannerFile = activityUpdateRequest.bannerFile();
-        ActivityValidator.validateBannerFile(bannerFile);
-
-        // Delete old file in S3
+        String currentBannerFileName = activity.getBannerFileName();
         String currentBannerFileUrl = activity.getBannerFileUrl();
-        if (currentBannerFileUrl != null) {
-            s3Service.deleteFileForActivity(currentBannerFileUrl);
+        String bannerFileName = null;
+        String bannerFileUrl = null;
+
+        if (bannerFile == null) {
+            bannerFileName = currentBannerFileName;
+            bannerFileUrl = currentBannerFileUrl;
+        } else {
+            // Check validity of banner file
+            ActivityValidator.validateBannerFile(bannerFile);
+
+            // Delete old file in S3
+            if (currentBannerFileUrl != null) {
+                s3Service.deleteFileForActivity(currentBannerFileUrl);
+            }
+            // Upload new file to S3
+            bannerFileName = s3Service.uploadFileForActivity(bannerFile, organizationName);
+            bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
         }
-        // Upload new file to S3
-        String bannerFileName = s3Service.uploadFileForActivity(bannerFile, organizationName);
-        String bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
 
         activity.setBannerFileName(bannerFileName);
         activity.setBannerFileUrl(bannerFileUrl);
 
-        // Check validity of regulations file
-        if (activityUpdateRequest.regulationsFile() != null) {
-            MultipartFile regulationsFile = activityUpdateRequest.regulationsFile();
+        // Update regulations file
+        MultipartFile regulationsFile = activityUpdateRequest.regulationsFile();
+        String currentRegulationsFileUrl = activity.getRegulationsFileUrl();
+        String regulationsFileName = null;
+        String regulationsFileUrl = null;
+
+        if (regulationsFile != null) {
+            // Check validity of regulations file
             ActivityValidator.validateRegulationsFile(regulationsFile);
 
             // Delete old file in S3
-            String currentRegulationsFileUrl = activity.getRegulationsFileUrl();
             if (currentRegulationsFileUrl != null) {
                 s3Service.deleteFileForActivity(currentRegulationsFileUrl);
             }
             // Upload new file to S3
-            String regulationsFileName = s3Service.uploadFileForActivity(regulationsFile, organizationName);
-            String regulationsFileUrl = s3Service.getFileUrl(regulationsFileName, organizationName + "/");
+            regulationsFileName = s3Service.uploadFileForActivity(regulationsFile, organizationName);
+            regulationsFileUrl = s3Service.getFileUrl(regulationsFileName, organizationName + "/");
+        }
 
-            activity.setRegulationsFileName(regulationsFileName);
-            activity.setRegulationsFileUrl(regulationsFileUrl);
+        activity.setRegulationsFileName(regulationsFileName);
+        activity.setRegulationsFileUrl(regulationsFileUrl);
+
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
+            activity.setStatus("PENDING");
         }
 
         activityRepo.save(activity);
@@ -193,12 +271,168 @@ public class ActivityService {
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
-    public Page<Activity> findActivityWithPagination(Specification<Activity> activitySpec, int offset, int pageSize, String order) {
-        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by("startDate").descending();
+    public Page<Activity> findActivityWithPagination(
+            Specification<Activity> activitySpec,
+            int offset,
+            int pageSize,
+            String order,
+            String type
+    ) {
+        Sort sort = order.equalsIgnoreCase(Sort.Direction.ASC.name()) ? Sort.by("startDate").ascending() : Sort.by(
+                "startDate").descending();
+        Pageable pageRequest = PageRequest.of(offset - 1, pageSize, sort);
+
+        Page<Activity> activities = null;
         if (activitySpec == null) {
-            return activityRepo.findAll(PageRequest.of(offset - 1, pageSize, sort));
+            activities = activityRepo.findAll(pageRequest);
+        } else {
+            activities = activityRepo.findAll(activitySpec, pageRequest);
         }
-        return activityRepo.findAll(activitySpec, PageRequest.of(offset - 1, pageSize, sort));
+
+        if (type.equals("MY")) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userEmail = authentication.getName();
+            Optional<User> user = userRepo.findByEmail(userEmail);
+            if (user.isEmpty()) {
+                throw new EntityNotFoundException("User with ID " + userEmail + " not found");
+            }
+
+            List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
+            if (activityIds.isEmpty()) {
+                return new PageImpl<>(new ArrayList<>(), pageRequest, 0);
+            }
+
+            List<Activity> filteredActivities = activities.getContent().stream()
+                    .filter(activity -> Arrays.stream(activityIds.toArray())
+                            .anyMatch(id -> id.equals(activity.getId()))).toList();
+            return new PageImpl<>(filteredActivities, pageRequest, activities.getTotalElements());
+        }
+
+        return activities;
     }
 
+    @Transactional
+    public ActivityParticipation registerActivity(ActivityRegistrationRequest activityRegistrationRequest) {
+        Activity activity = activityRepo.findOneById(activityRegistrationRequest.activityId());
+        Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+        }
+
+        return addUserToActivityParticipation(user.get(), activity);
+    }
+
+    @Transactional
+    public ActivityParticipation deregisterActivity(ActivityRegistrationRequest activityRegistrationRequest) {
+        Activity activity = activityRepo.findOneById(activityRegistrationRequest.activityId());
+        Optional<User> user = userRepo.findByEmail(activityRegistrationRequest.userEmail());
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
+        }
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+        }
+
+        ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder()
+                .activityId(activity.getId())
+                .userId(user.get().getId())
+                .build();
+        Optional<ActivityParticipation> activityParticipation = activityParticipationRepo.findById(
+                activityParticipationId
+        );
+        if (activityParticipation.isEmpty()) {
+            throw new EntityNotFoundException(
+                    "No activity with ID " + activityRegistrationRequest.activityId() + " associated with user " + activityRegistrationRequest.userEmail() + " found");
+        }
+
+        activityParticipationRepo.delete(activityParticipation.get());
+
+        return activityParticipation.get();
+    }
+
+    public List<ParticipantsResponse> getParticipantsByActivityTitle(String title) {
+        Activity activity = activityRepo.findOneByTitle(title);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with title " + title + " not found");
+        }
+
+        return activityParticipationRepo.findParticipantsByActivityTitle(title);
+    }
+
+    @Transactional
+    public List<ParticipantsResponse> removeParticipantsByActivityTitle(UUID activityId, List<UUID> participantsIds) {
+        Activity activity = activityRepo.findOneById(activityId);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with id " + activityId + " not found");
+        }
+
+        List<ParticipantsResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
+                activityId, participantsIds
+        );
+
+        // Check if all requested IDs were found
+        List<UUID> foundIds = participants.stream()
+                .map(participantsResponse -> participantsResponse.user().getId())
+                .toList();
+
+        List<UUID> notFoundIds = participantsIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!notFoundIds.isEmpty()) {
+            throw new ParticipantsNotFoundException("Participants not found for IDs: " + notFoundIds);
+        }
+
+        activityParticipationRepo.deleteByUserIdIn(foundIds);
+
+        return activityParticipationRepo.findParticipantsByActivityId(
+                activityId);
+    }
+
+    @Transactional
+    public Activity approveActivity(UUID activityId) {
+        Activity activity = activityRepo.findOneById(activityId);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityId + " not found");
+        }
+
+        if (Objects.equals(activity.getStatus(), "OPEN")) {
+            throw new ActivityStatusViolationException(
+                    "Admin cannot approve activity with status OPEN");
+        }
+
+        activity.setStatus("OPEN");
+        return activityRepo.save(activity);
+    }
+
+    @Transactional
+    public Activity rejectActivity(UUID activityId) {
+        Activity activity = activityRepo.findOneById(activityId);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with ID " + activityId + " not found");
+        }
+
+        if (Objects.equals(activity.getStatus(), "REJECTED")) {
+            throw new ActivityStatusViolationException(
+                    "Admin cannot reject activity with status REJECTED");
+        }
+
+        activity.setStatus("REJECTED");
+        return activityRepo.save(activity);
+    }
 }
