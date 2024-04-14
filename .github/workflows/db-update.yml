@@ -29,7 +29,7 @@ jobs:
         run: |
           docker run --rm \
           -v ${{ github.workspace }}/database:/app/database \
-          cockroachdb/cockroach:v23.2.4 sql --url "postgresql://${{ secrets.DB_USERNAME }}:${{}}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=${{ env.CERT_DIR }}/root.crt" -f ${{ env.DATABASE_DIR }}/init-cockroach.sql
+          cockroachdb/cockroach:v23.2.4 sql --url "postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=/app/database/root.crt" -f /app/database/init-cockroach.sql
 
       - name: Clean up
         run: |
