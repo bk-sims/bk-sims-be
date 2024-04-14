@@ -1,4 +1,4 @@
--- Drop the database if it's already existed
+-- Drop the database if it existed
 DROP DATABASE IF EXISTS bk_sims;
 
 -- Create the database
