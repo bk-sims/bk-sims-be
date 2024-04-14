@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install CockroachDB client (with library path)
+      - name: Install CockroachDB client
         run: |
           sudo apt-get update
           sudo apt-get install cockroach
