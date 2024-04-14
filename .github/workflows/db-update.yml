@@ -21,14 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install CockroachDB client
+      - name: Pull CockroachDB image
         run: |
-          sudo apt-get update
-          sudo apt-get install cockroach
-          sudo mkdir -p /usr/local/lib/cockroach
-          sudo cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/
-          sudo cp -i cockroach-v23.2.4.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/
+          docker pull cockroachdb/cockroach:v23.2.4
 
-      - name: Update application properties
+      - name: Update Database
         run: |
-          /usr/local/bin/cockroach sql --url 'postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=${{ env.CERT_DIR }}/root.crt' -f ${{ env.DATABASE_DIR }}/init-cockroach.sql
+          docker run --rm \
+          -v ${{ github.workspace }}/database:/app/database \
+          cockroachdb/cockroach:v23.2.4 sql --url "postgresql://${{ secrets.DB_USERNAME }}:${{}}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=${{ env.CERT_DIR }}/root.crt" -f ${{ env.DATABASE_DIR }}/init-cockroach.sql
+
+      - name: Clean up
+        run: |
+          docker image prune -f
