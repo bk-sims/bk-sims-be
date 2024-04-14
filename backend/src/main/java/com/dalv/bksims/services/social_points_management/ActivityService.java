@@ -298,7 +298,7 @@ public class ActivityService {
             }
 
             List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
-            if (activityIds.size() == 0) {
+            if (activityIds.isEmpty()) {
                 return new PageImpl<>(new ArrayList<>(), pageRequest, 0);
             }
 
