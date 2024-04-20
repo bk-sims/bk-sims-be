@@ -29,7 +29,7 @@ public class AppConfiguration {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns("https://backend.bk-sims.io.vn", "http://localhost:5173")
+                        .allowedOrigins("https://backend.bk-sims.io.vn", "http://localhost:5173")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true);
