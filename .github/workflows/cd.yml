@@ -8,6 +8,11 @@
 
 name: CD pipeline
 
+env:
+  BACKEND_DIR: ./backend
+  AWS_REGION: ap-southeast-1
+  DOCKERHUB_REPO: luongla/bk-sims-auth-activity-service
+
 on:
   push:
     branches: ["main"]
@@ -42,7 +47,7 @@ jobs:
       - name: Login to DockerHub
         run: docker login -u ${{secrets.DOCKERHUB_USER_NAME}} -p ${{secrets.DOCKERHUB_ACCESS_TOKEN}}
 
-     - name: Build and push Docker image
+      - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v4
         with:
@@ -65,4 +70,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           playbook: deploy.yml
           options: |
-            --extra-vars "image_name=bk-sims-auth-activity-service:${{github.sha}}"
+            --extra-vars "image_name=bk-sims-auth-activity-service"
