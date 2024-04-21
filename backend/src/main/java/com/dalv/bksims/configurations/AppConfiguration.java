@@ -29,7 +29,7 @@ public class AppConfiguration {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:5173")
+                        .allowedOrigins("https://bk-sims-fe.vercel.app","https://backend.bk-sims.io.vn", "http://localhost:5173")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true);

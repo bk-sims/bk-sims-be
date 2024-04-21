@@ -1,8 +1,8 @@
+-- Drop the database if it existed
+DROP DATABASE IF EXISTS bk_sims;
+
 -- Create the database
 CREATE DATABASE bk_sims;
-
--- Connect to the newly created database
-\c bk_sims;
 
 -- Enable the 'uuid-ossp' extension for generating UUIDs (if not already enabled)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -66,15 +66,6 @@ CREATE TABLE activity_participation(
     points_approved INT NOT NULL,
     CONSTRAINT fk_participation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
     CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
-    PRIMARY KEY (activity_id, user_id)
-);
-
-CREATE TABLE activity_invitation(
-    activity_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    CONSTRAINT fk_invitation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
-    CONSTRAINT fk_invitation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
     PRIMARY KEY (activity_id, user_id)
 );
 
@@ -434,4 +425,3 @@ INSERT INTO prerequisite (pre_course_id, course_id)
 VALUES
     ((SELECT id FROM course WHERE course_code = 'CO1005'), (SELECT id FROM course WHERE course_code = 'CO2007')),
     ((SELECT id FROM course WHERE course_code = 'CO1023'), (SELECT id FROM course WHERE course_code = 'CO2007'));
-    ((SELECT id FROM course WHERE course_code = 'SP1039'), (SELECT id FROM course WHERE course_code = 'SP1037'));

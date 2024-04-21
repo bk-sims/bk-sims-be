@@ -1,0 +1,36 @@
+name: Update Cockroach DB
+
+env:
+  DATABASE_DIR: ./database
+  CERT_DIR: ./backend/src/main/resources/ssl
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["database/init-cockroach.sql", ".github/workflows/db-update.yml"]
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  deploy-database:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull CockroachDB image
+        run: |
+          docker pull cockroachdb/cockroach:v23.2.4
+
+      - name: Update Database
+        run: |
+          docker run --rm \
+          -v ${{ github.workspace }}/database:/app/database \
+          cockroachdb/cockroach:v23.2.4 sql --url "postgresql://${{ secrets.DB_USERNAME }}:${{ secrets.DB_PASSWORD }}@${{ secrets.COCKROACH_DB }}/bk_sims?sslmode=verify-full&sslrootcert=/app/database/root.crt" -f /app/database/init-cockroach.sql
+
+      - name: Clean up
+        run: |
+          docker image prune -f
