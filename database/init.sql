@@ -122,7 +122,6 @@ CREATE TABLE course (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     course_code VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) UNIQUE NOT NULL,
-    department VARCHAR(255) UNIQUE NOT NULL,
     credits INT NOT NULL,
     introduction VARCHAR(255) NOT NULL,
     syllabus_file_name VARCHAR(255),
@@ -132,12 +131,11 @@ CREATE TABLE course (
     final INT NOT NULL
 );
 
-CREATE TABLE prerequisites (
+CREATE TABLE prerequisite (
     pre_course_id UUID NOT NULL,
     course_id UUID NOT NULL,
     CONSTRAINT fk_pre_course_id FOREIGN KEY (pre_course_id) REFERENCES course (id),
-    CONSTRAINT fk_participation_user FOREIGN KEY (course_id) REFERENCES course (id),
-    PRIMARY KEY (pre_course_id, course_id)
+    CONSTRAINT fk_participation_user FOREIGN KEY (course_id) REFERENCES course (id)
 );
 
 -- Insert initial values for tables
@@ -330,12 +328,12 @@ VALUES
     (uuid_generate_v4(), 'PH1007', 'Physics 2', 3, 'Advanced Physics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CH1003', 'General Chemistry', 2, 'Introduction to Chemistry course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'MT2013', 'Probability and Statistics', 3, 'Probability and Statistics course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'SP1031', 'Philosophy of Marx and Lenin', 3, 'Philosophy course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'SP1033', 'Political Economy of Marx', 2, 'Political Economy course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'SP1035', 'Socialism Science', 3, 'Socialism course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'SP1039', 'History of Vietnamese communist party', 2, 'History of Vietnamese communist party course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'SP1031', 'Marxist and Leninist Philosophy', 3, 'Philosophy course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'SP1033', 'Marxist and Leninist Political Economy', 2, 'Political Economy course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'SP1035', 'Scientific Socialism', 3, 'Socialism course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'SP1039', 'History of Vietnamese Communist Party', 2, 'History of Vietnamese communist party course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'SP1037', 'Ho Chi Minh Ideaology', 3, 'Ho Chi Minh Ideaology', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'SP1007', 'General Law', 2, 'General Law course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'SP1007', 'Introduction to Vietnamese Law', 2, 'General Law course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM1013', 'General Economics', 3, 'Introduction to Economics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM1023', 'Production Management for Engineers', 2, 'Production Management course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM1025', 'Project Management for Engineers', 3, 'Project Management course', NULL, 10, 20, 30, 40),
@@ -348,7 +346,7 @@ VALUES
 INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm, assignment, final)
 VALUES
     (uuid_generate_v4(), 'CO1007', 'Computer Organization and Assembly Language', 3, 'Computer Organization course', NULL, 10, 20, 25, 45),
-    (uuid_generate_v4(), 'CO1027', 'Programming Techniques', 2, 'Programming Techniques course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'CO1027', 'Programming Fundamentals', 2, 'Programming Fundamentals course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO3093', 'Computer Networking', 3, 'Computer Networking course', NULL, 15, 20, 25, 40),
     (uuid_generate_v4(), 'CO3001', 'Software Engineering', 3, 'Software Engineering course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO2017', 'Operating Systems', 3, 'Operating Systems course', NULL, 15, 20, 30, 35),
@@ -390,11 +388,41 @@ VALUES
     (uuid_generate_v4(), 'CO4037', 'Management Information Systems', 3, 'Management Information Systems course', NULL, 15, 20, 30, 35);
 
 
--- Insert prerequisites table
+-- Insert prerequisite table
 -- Triet -> KTCT -> CNXHKH -> LSD -> Tu tuong HCM
-INSERT INTO prerequisites (pre_course_id, course_id)
+INSERT INTO prerequisite (pre_course_id, course_id)
 VALUES
     ((SELECT id FROM course WHERE course_code = 'SP1031'), (SELECT id FROM course WHERE course_code = 'SP1033')),
     ((SELECT id FROM course WHERE course_code = 'SP1033'), (SELECT id FROM course WHERE course_code = 'SP1035')),
     ((SELECT id FROM course WHERE course_code = 'SP1035'), (SELECT id FROM course WHERE course_code = 'SP1039')),
+    ((SELECT id FROM course WHERE course_code = 'SP1039'), (SELECT id FROM course WHERE course_code = 'SP1037'));
+
+-- Calculus 1 -> Calculus 2 
+INSERT INTO prerequisite (pre_course_id, course_id)
+VALUES 
+    ((SELECT id FROM course WHERE course_code = 'MT1003'), (SELECT id FROM course WHERE course_code = 'MT1005'));
+
+-- Calculus 1 + Linear Algerbra -> Probability and Statistics
+INSERT INTO prerequisite (pre_course_id, course_id)
+VALUES
+    ((SELECT id FROM course WHERE course_code = 'MT1003'), (SELECT id FROM course WHERE course_code = 'MT2013')),
+    ((SELECT id FROM course WHERE course_code = 'MT1007'), (SELECT id FROM course WHERE course_code = 'MT2013'));
+
+-- CO1007 (Computer Organization and Assembly Language) CO1027 Programming Fundamentals -> DSA
+INSERT INTO prerequisite (pre_course_id, course_id)
+VALUES
+    ((SELECT id FROM course WHERE course_code = 'CO1007'), (SELECT id FROM course WHERE course_code = 'CO2003')),
+    ((SELECT id FROM course WHERE course_code = 'CO1027'), (SELECT id FROM course WHERE course_code = 'CO2003'));
+
+
+-- CO1007 (Computer Organization and Assembly Language) -> Math Modeling (CO2011)
+INSERT INTO prerequisite (pre_course_id, course_id)
+VALUES
+    ((SELECT id FROM course WHERE course_code = 'CO1007'), (SELECT id FROM course WHERE course_code = 'CO2011'));
+
+-- CO1005 (Introduction to computing) CO1023 (Digital systems) -> Computer Architecture
+INSERT INTO prerequisite (pre_course_id, course_id)
+VALUES
+    ((SELECT id FROM course WHERE course_code = 'CO1005'), (SELECT id FROM course WHERE course_code = 'CO2007')),
+    ((SELECT id FROM course WHERE course_code = 'CO1023'), (SELECT id FROM course WHERE course_code = 'CO2007'));
     ((SELECT id FROM course WHERE course_code = 'SP1039'), (SELECT id FROM course WHERE course_code = 'SP1037'));
