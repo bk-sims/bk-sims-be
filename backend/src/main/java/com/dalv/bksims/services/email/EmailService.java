@@ -8,16 +8,16 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
-    private final JavaMailSender emailSender;
+    // private final JavaMailSender emailSender;
 
-    public void sendSimpleMessage(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("bksims2023@gmail.com");
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        emailSender.send(message);
+    // public void sendSimpleMessage(String to, String subject, String text) {
+    //     SimpleMailMessage message = new SimpleMailMessage();
+    //     message.setFrom("bksims2023@gmail.com");
+    //     message.setTo(to);
+    //     message.setSubject(subject);
+    //     message.setText(text);
+    //     emailSender.send(message);
 
-        System.out.println("Message sent successfully");
-    }
+    //     System.out.println("Message sent successfully");
+    // }
 }
