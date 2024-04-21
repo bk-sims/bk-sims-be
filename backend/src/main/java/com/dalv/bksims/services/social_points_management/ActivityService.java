@@ -22,6 +22,7 @@ import com.dalv.bksims.models.repositories.social_points_management.ActivityRepo
 import com.dalv.bksims.models.repositories.social_points_management.OrganizationRepository;
 import com.dalv.bksims.models.repositories.user.UserRepository;
 import com.dalv.bksims.services.common.S3Service;
+import com.dalv.bksims.services.email.EmailService;
 import com.dalv.bksims.validations.ActivityValidator;
 import com.dalv.bksims.validations.DateValidator;
 import jakarta.transaction.Transactional;
@@ -62,6 +63,8 @@ public class ActivityService {
     private final OrganizationRepository organizationRepo;
 
     private final S3Service s3Service;
+
+    private final EmailService emailService;
 
     @Transactional
     public Activity createActivity(ActivityRequest activityRequest) {
@@ -451,6 +454,7 @@ public class ActivityService {
                                                                             .build());
 
         // Send email to the user
+        // emailService.sendSimpleMessage(user.getEmail(), "HI", "hi");
 
         return invitation;
     }
