@@ -433,5 +433,5 @@ VALUES
 INSERT INTO prerequisite (pre_course_id, course_id)
 VALUES
     ((SELECT id FROM course WHERE course_code = 'CO1005'), (SELECT id FROM course WHERE course_code = 'CO2007')),
-    ((SELECT id FROM course WHERE course_code = 'CO1023'), (SELECT id FROM course WHERE course_code = 'CO2007'));
+    ((SELECT id FROM course WHERE course_code = 'CO1023'), (SELECT id FROM course WHERE course_code = 'CO2007')),
     ((SELECT id FROM course WHERE course_code = 'SP1039'), (SELECT id FROM course WHERE course_code = 'SP1037'));
