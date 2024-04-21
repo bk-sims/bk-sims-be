@@ -6,13 +6,17 @@ import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
-import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
+import com.dalv.bksims.models.entities.social_points_management.ActivityInvitation;
+import com.dalv.bksims.models.entities.social_points_management.ActivityInvitationId;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
 import com.dalv.bksims.models.entities.user.User;
+import com.dalv.bksims.models.enums.InvitationStatus;
 import com.dalv.bksims.models.enums.Status;
+import com.dalv.bksims.models.repositories.social_points_management.ActivityInvitationRepository;
 import com.dalv.bksims.models.repositories.social_points_management.ActivityParticipationRepository;
 import com.dalv.bksims.models.repositories.social_points_management.ActivityRepository;
 import com.dalv.bksims.models.repositories.social_points_management.OrganizationRepository;
@@ -32,8 +36,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
@@ -43,8 +46,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-@RestController
-@RequestMapping("/api/v1/activities")
+@Service
 @RequiredArgsConstructor
 @Slf4j
 public class ActivityService {
@@ -54,6 +56,8 @@ public class ActivityService {
     private final UserRepository userRepo;
 
     private final ActivityParticipationRepository activityParticipationRepo;
+
+    private final ActivityInvitationRepository activityInvitationRepo;
 
     private final OrganizationRepository organizationRepo;
 
@@ -78,7 +82,7 @@ public class ActivityService {
         String userEmail = authentication.getName();
 
         User owner = userRepo.findByEmail(userEmail).orElseThrow(
-                () -> new EntityNotFoundException("User with id " + organizationRequestName + " not found"));
+                () -> new EntityNotFoundException("User with email " + userEmail + " not found"));
 
         if (owner == null) {
             throw new EntityNotFoundException("Owner with email " + userEmail + " not found");
@@ -294,7 +298,7 @@ public class ActivityService {
             String userEmail = authentication.getName();
             Optional<User> user = userRepo.findByEmail(userEmail);
             if (user.isEmpty()) {
-                throw new EntityNotFoundException("User with ID " + userEmail + " not found");
+                throw new EntityNotFoundException("User with email " + userEmail + " not found");
             }
 
             List<UUID> activityIds = activityParticipationRepo.findActivityIdByUserId(user.get().getId());
@@ -321,7 +325,8 @@ public class ActivityService {
                     "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
         }
         if (user.isEmpty()) {
-            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+            throw new EntityNotFoundException(
+                    "User with email " + activityRegistrationRequest.userEmail() + " not found");
         }
 
         return addUserToActivityParticipation(user.get(), activity);
@@ -337,7 +342,8 @@ public class ActivityService {
                     "Activity with ID " + activityRegistrationRequest.activityId() + " not found");
         }
         if (user.isEmpty()) {
-            throw new EntityNotFoundException("User with ID " + activityRegistrationRequest.userEmail() + " not found");
+            throw new EntityNotFoundException(
+                    "User with email " + activityRegistrationRequest.userEmail() + " not found");
         }
 
         ActivityParticipationId activityParticipationId = new ActivityParticipationId().builder()
@@ -357,7 +363,7 @@ public class ActivityService {
         return activityParticipation.get();
     }
 
-    public List<ParticipantsResponse> getParticipantsByActivityTitle(String title) {
+    public List<ParticipantResponse> getParticipantsByActivityTitle(String title) {
         Activity activity = activityRepo.findOneByTitle(title);
 
         if (activity == null) {
@@ -369,7 +375,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public List<ParticipantsResponse> removeParticipantsByActivityTitle(UUID activityId, List<UUID> participantsIds) {
+    public List<ParticipantResponse> removeParticipantsByActivityTitle(UUID activityId, List<UUID> participantsIds) {
         Activity activity = activityRepo.findOneById(activityId);
 
         if (activity == null) {
@@ -377,13 +383,13 @@ public class ActivityService {
                     "Activity with id " + activityId + " not found");
         }
 
-        List<ParticipantsResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
+        List<ParticipantResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
                 activityId, participantsIds
         );
 
         // Check if all requested IDs were found
         List<UUID> foundIds = participants.stream()
-                .map(participantsResponse -> participantsResponse.user().getId())
+                .map(participantResponse -> participantResponse.user().getId())
                 .toList();
 
         List<UUID> notFoundIds = participantsIds.stream()
@@ -399,6 +405,56 @@ public class ActivityService {
         return activityParticipationRepo.findParticipantsByActivityId(
                 activityId);
     }
+
+    public List<ActivityInvitation> getInvitationsByActivityTitle(String title) {
+        Activity activity = activityRepo.findOneByTitle(title);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with title " + title + " not found");
+        }
+
+        return activityInvitationRepo.findInvitationsByActivityTitle(title);
+    }
+
+    @Transactional
+    public ActivityInvitation inviteUserToActivity(String title, UUID userId) {
+        Activity activity = activityRepo.findOneByTitle(title);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with title " + title + " not found");
+        }
+
+        // Check if the user exists in participation table
+        boolean isUserInParticipants = activityParticipationRepo.existsByUserIdAndActivityId(userId, activity.getId());
+
+        if (isUserInParticipants) {
+            throw new EntityNotFoundException(
+                    "User with ID " + userId + " already in the activity");
+        }
+
+        // Add invitation to the activity
+        ActivityInvitationId activityInvitationId = ActivityInvitationId.builder()
+                .activityId(activity.getId())
+                .userId(userId)
+                .build();
+
+        User user = userRepo.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException("User with ID " + userId + " not found"));
+
+        ActivityInvitation invitation = activityInvitationRepo.save(ActivityInvitation.builder()
+                                                                            .activityInvitationId(activityInvitationId)
+                                                                            .activity(activity)
+                                                                            .user(user)
+                                                                            .status(InvitationStatus.PENDING.toString())
+                                                                            .build());
+
+        // Send email to the user
+
+        return invitation;
+    }
+
 
     @Transactional
     public Activity approveActivity(UUID activityId) {
