@@ -2,9 +2,10 @@ package com.dalv.bksims.controllers.social_points_management;
 
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
-import com.dalv.bksims.models.dtos.social_points_management.ParticipantsResponse;
-import com.dalv.bksims.models.dtos.social_points_management.RemoveParticipantsRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
+import com.dalv.bksims.models.dtos.social_points_management.RemoveParticipantRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
+import com.dalv.bksims.models.entities.social_points_management.ActivityInvitation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.services.social_points_management.ActivityService;
@@ -135,20 +136,52 @@ public class ActivityController {
 
     @GetMapping("/{title}/participants")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<List<ParticipantsResponse>> getParticipantsByActivityTitle(@PathVariable String title) {
-        List<ParticipantsResponse> participants = activityService.getParticipantsByActivityTitle(title);
+    public ResponseEntity<List<ParticipantResponse>> getParticipantsByActivityTitle(@PathVariable String title) {
+        List<ParticipantResponse> participants = activityService.getParticipantsByActivityTitle(title);
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
 
     @DeleteMapping("/participants")
     @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<List<ParticipantsResponse>> removeParticipantsByActivityTitle(@RequestBody RemoveParticipantsRequest request) {
+    public ResponseEntity<List<ParticipantResponse>> removeParticipantsByActivityTitle(@RequestBody RemoveParticipantRequest request) {
         UUID activityId = UUID.fromString(request.activityId());
 
-        List<ParticipantsResponse> participants = activityService.removeParticipantsByActivityTitle(
+        List<ParticipantResponse> participants = activityService.removeParticipantsByActivityTitle(
                 activityId, request.participantsIds());
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
+
+    @GetMapping("/{title}/invitations")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<List<ActivityInvitation>> getInvitationsByActivityTitle(
+            @PathVariable String title
+    ) throws Exception {
+        List<ActivityInvitation> invitations = activityService.getInvitationsByActivityTitle(title);
+        return new ResponseEntity<>(invitations, HttpStatus.OK);
+    }
+
+    @PostMapping("/{title}/invitations")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<ActivityInvitation> inviteUserToActivity(
+            @PathVariable String title,
+            @RequestBody Map<String, String> payload
+    ) throws Exception {
+        UUID userId = UUID.fromString(payload.get("userId"));
+
+        ActivityInvitation invitation = activityService.inviteUserToActivity(title, userId);
+
+        return new ResponseEntity<>(invitation, HttpStatus.OK);
+    }
+
+//    @DeleteMapping("/participants")
+//    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+//    public ResponseEntity<List<ActivityInvitation>> removeInvitationsByActivityTitle(@RequestBody RemoveParticipantsRequest request) {
+//        UUID activityId = UUID.fromString(request.activityId());
+//
+//        List<ActivityInvitation> invitations = activityService.removeParticipantsByActivityTitle(
+//                activityId, request.participantsIds());
+//        return new ResponseEntity<>(invitations, HttpStatus.OK);
+//    }
 
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})

@@ -69,6 +69,15 @@ CREATE TABLE activity_participation(
     PRIMARY KEY (activity_id, user_id)
 );
 
+CREATE TABLE activity_invitation(
+    activity_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    CONSTRAINT fk_invitation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
+    CONSTRAINT fk_invitation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
+    PRIMARY KEY (activity_id, user_id)
+);
+
 CREATE TABLE program (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL
