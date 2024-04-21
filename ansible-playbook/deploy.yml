@@ -5,7 +5,7 @@
 
   tasks:
     - name: Find existing containers running on port 80
-      shell: docker ps -q --filter "ancestor=luongla/{{ image_name }}" --filter "status=running"
+      shell: docker ps -q --filter "status=running"
       register: existing_containers
       ignore_errors: true
 
