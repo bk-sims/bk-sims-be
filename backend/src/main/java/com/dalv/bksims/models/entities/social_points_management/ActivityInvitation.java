@@ -39,4 +39,8 @@ public class ActivityInvitation {
     private User user;
 
     private String status = InvitationStatus.PENDING.toString();
+
+    private String invitationLink;
+
+    private boolean expired;
 }

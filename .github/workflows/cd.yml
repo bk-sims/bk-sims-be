@@ -43,6 +43,8 @@ jobs:
           sed -i "s|<aws_s3_key_id>|${{ secrets.AWS_S3_KEY_ID }}|g" application-prod.yml
           sed -i "s|<aws_s3_key_secret>|${{ secrets.AWS_S3_KEY_SECRET }}|g" application-prod.yml
           sed -i "s|<jwt_secret_key>|${{ secrets.JWT_SECRET_KEY }}|g" application-prod.yml
+          sed -i "s|<mail_username>|${{ secrets.MAIL_USERNAME }}|g" application-prod.yml
+          sed -i "s|<mail_password>|${{ secrets.MAIL_PASSWORD }}|g" application-prod.yml
 
       - name: Login to DockerHub
         run: docker login -u ${{secrets.DOCKERHUB_USER_NAME}} -p ${{secrets.DOCKERHUB_ACCESS_TOKEN}}

@@ -9,4 +9,8 @@ import java.util.List;
 
 public interface ActivityInvitationRepository extends JpaRepository<ActivityInvitation, ActivityInvitationId> {
     List<ActivityInvitation> findInvitationsByActivityTitle(@Param("activityTitle") String activityTitle);
+
+    ActivityInvitation findOneByActivityInvitationId(ActivityInvitationId id);
+
+    ActivityInvitation findOneByActivityInvitationIdAndInvitationLink(ActivityInvitationId id, String invitationLink);
 }
