@@ -1,23 +1,32 @@
 package com.dalv.bksims.services.email;
 
+import com.dalv.bksims.exceptions.EmailException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
-    // private final JavaMailSender emailSender;
+    private final JavaMailSender emailSender;
 
-    // public void sendSimpleMessage(String to, String subject, String text) {
-    //     SimpleMailMessage message = new SimpleMailMessage();
-    //     message.setFrom("bksims2023@gmail.com");
-    //     message.setTo(to);
-    //     message.setSubject(subject);
-    //     message.setText(text);
-    //     emailSender.send(message);
+    @Async
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        try {
+            MimeMessage message = emailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "utf-8");
 
-    //     System.out.println("Message sent successfully");
-    // }
+            helper.setTo(to);
+            helper.setSubject(subject);
+            message.setContent(htmlContent, "text/html");
+
+            // Send the email
+            emailSender.send(message);
+        } catch (Exception e) {
+            throw new EmailException("Email service failed to send email");
+        }
+    }
 }

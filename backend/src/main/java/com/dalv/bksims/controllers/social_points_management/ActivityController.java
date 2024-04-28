@@ -1,15 +1,18 @@
 package com.dalv.bksims.controllers.social_points_management;
 
+import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
 import com.dalv.bksims.models.dtos.social_points_management.RemoveParticipantRequest;
 import com.dalv.bksims.models.entities.social_points_management.Activity;
 import com.dalv.bksims.models.entities.social_points_management.ActivityInvitation;
+import com.dalv.bksims.models.entities.social_points_management.ActivityInvitationId;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.services.social_points_management.ActivityService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.kaczmarzyk.spring.data.jpa.domain.GreaterThan;
@@ -24,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -33,14 +37,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Activity")
-@RestController
+@Controller
 @RequestMapping("/api/v1/activities")
 @RequiredArgsConstructor
 public class ActivityController {
@@ -143,10 +146,10 @@ public class ActivityController {
 
     @DeleteMapping("/participants")
     @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<List<ParticipantResponse>> removeParticipantsByActivityTitle(@RequestBody RemoveParticipantRequest request) {
+    public ResponseEntity<List<ParticipantResponse>> removeParticipantsByActivityId(@RequestBody RemoveParticipantRequest request) {
         UUID activityId = UUID.fromString(request.activityId());
 
-        List<ParticipantResponse> participants = activityService.removeParticipantsByActivityTitle(
+        List<ParticipantResponse> participants = activityService.removeParticipantsByActivityId(
                 activityId, request.participantsIds());
         return new ResponseEntity<>(participants, HttpStatus.OK);
     }
@@ -162,26 +165,34 @@ public class ActivityController {
 
     @PostMapping("/{title}/invitations")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<ActivityInvitation> inviteUserToActivity(
+    public ResponseEntity<List<ActivityInvitation>> inviteUserToActivity(
             @PathVariable String title,
             @RequestBody Map<String, String> payload
-    ) throws Exception {
+    ) {
         UUID userId = UUID.fromString(payload.get("userId"));
 
-        ActivityInvitation invitation = activityService.inviteUserToActivity(title, userId);
+        List<ActivityInvitation> invitations = activityService.inviteUserToActivity(title, userId);
 
-        return new ResponseEntity<>(invitation, HttpStatus.OK);
+        return new ResponseEntity<>(invitations, HttpStatus.OK);
     }
 
-//    @DeleteMapping("/participants")
-//    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
-//    public ResponseEntity<List<ActivityInvitation>> removeInvitationsByActivityTitle(@RequestBody RemoveParticipantsRequest request) {
-//        UUID activityId = UUID.fromString(request.activityId());
-//
-//        List<ActivityInvitation> invitations = activityService.removeParticipantsByActivityTitle(
-//                activityId, request.participantsIds());
-//        return new ResponseEntity<>(invitations, HttpStatus.OK);
-//    }
+    @PostMapping("/invitations/accept")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<AcceptInvitationResponse> acceptInvitation(
+            @RequestBody Map<String, String> payload,
+            HttpServletResponse response
+    ) {
+        UUID activityId = UUID.fromString(payload.get("activityId"));
+        UUID userId = UUID.fromString(payload.get("userId"));
+        ActivityInvitationId activityInvitationId = ActivityInvitationId.builder()
+                .activityId(activityId)
+                .userId(userId)
+                .build();
+        String invitationLink = payload.get("invitationLink");
+        AcceptInvitationResponse acceptInvitationResponse = activityService.acceptInvitation(activityInvitationId,
+                                                                                             invitationLink);
+        return new ResponseEntity<>(acceptInvitationResponse, HttpStatus.OK);
+    }
 
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})

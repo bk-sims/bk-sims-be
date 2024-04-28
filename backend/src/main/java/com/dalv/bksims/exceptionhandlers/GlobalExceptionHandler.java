@@ -3,6 +3,7 @@ package com.dalv.bksims.exceptionhandlers;
 import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.AuthException;
+import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.FieldBlankException;
 import com.dalv.bksims.exceptions.FileTooLargeException;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -138,6 +140,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ParticipantsNotFoundException.class)
     public ProblemDetail handleParticipantsNotFoundException(ParticipantsNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ProblemDetail handleIOException(IOException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        problemDetail.setProperty("message", "An error occurred while processing the request.");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(EntityAlreadyExistsException.class)
+    public ProblemDetail handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;

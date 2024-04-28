@@ -2,8 +2,10 @@ package com.dalv.bksims.services.social_points_management;
 
 import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
+import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
+import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
@@ -29,6 +31,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.LocalDate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -65,6 +68,9 @@ public class ActivityService {
     private final S3Service s3Service;
 
     private final EmailService emailService;
+
+    @Value("${application.frontend-base-url}")
+    private String frontendBaseUrl;
 
     @Transactional
     public Activity createActivity(ActivityRequest activityRequest) {
@@ -378,7 +384,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public List<ParticipantResponse> removeParticipantsByActivityTitle(UUID activityId, List<UUID> participantsIds) {
+    public List<ParticipantResponse> removeParticipantsByActivityId(UUID activityId, List<UUID> participantsIds) {
         Activity activity = activityRepo.findOneById(activityId);
 
         if (activity == null) {
@@ -421,7 +427,7 @@ public class ActivityService {
     }
 
     @Transactional
-    public ActivityInvitation inviteUserToActivity(String title, UUID userId) {
+    public List<ActivityInvitation> inviteUserToActivity(String title, UUID userId) {
         Activity activity = activityRepo.findOneByTitle(title);
 
         if (activity == null) {
@@ -429,12 +435,15 @@ public class ActivityService {
                     "Activity with title " + title + " not found");
         }
 
+        User user = userRepo.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException("User with ID " + userId + " not found"));
+
         // Check if the user exists in participation table
         boolean isUserInParticipants = activityParticipationRepo.existsByUserIdAndActivityId(userId, activity.getId());
 
         if (isUserInParticipants) {
-            throw new EntityNotFoundException(
-                    "User with ID " + userId + " already in the activity");
+            throw new EntityAlreadyExistsException(
+                    "User with email " + user.getEmail() + " already participates in the activity");
         }
 
         // Add invitation to the activity
@@ -443,22 +452,79 @@ public class ActivityService {
                 .userId(userId)
                 .build();
 
-        User user = userRepo.findById(userId).orElseThrow(
-                () -> new EntityNotFoundException("User with ID " + userId + " not found"));
+        ActivityInvitation existingInvitation = activityInvitationRepo.findOneByActivityInvitationId(
+                activityInvitationId);
+
+        if (existingInvitation != null) {
+            throw new EntityAlreadyExistsException(
+                    "Invitation between the user and the activity already exists");
+        }
+
+
+        UUID randomUUID = UUID.randomUUID();
+        String invitationLink = frontendBaseUrl + "/activities/invitations/accept/" + activity.getId() + "/" + randomUUID.toString();
 
         ActivityInvitation invitation = activityInvitationRepo.save(ActivityInvitation.builder()
                                                                             .activityInvitationId(activityInvitationId)
                                                                             .activity(activity)
                                                                             .user(user)
                                                                             .status(InvitationStatus.PENDING.toString())
+                                                                            .invitationLink(invitationLink)
+                                                                            .expired(false)
                                                                             .build());
 
         // Send email to the user
-        // emailService.sendSimpleMessage(user.getEmail(), "HI", "hi");
+        String emailSubject = "[BKSims] Invitation to an activity";
+        String emailContent = "<html><body><p>Dear " + user.getFirstName() + " " + user.getLastName() + ",</p>"
+                + "<p>You have been invited to join activity <b>" + activity.getTitle() + "</b>. Please click the link below to accept the invitation:</p>"
+                + "<a href=\"" + invitationLink + "\">" + invitationLink + "</a>"
+                + "<p>Best regards,<br/>BKSims</p></body></html>";
+        emailService.sendHtmlEmail(user.getEmail(), emailSubject, emailContent);
 
-        return invitation;
+        return activityInvitationRepo.findInvitationsByActivityTitle(activity.getTitle());
     }
 
+    @Transactional
+    public AcceptInvitationResponse acceptInvitation(ActivityInvitationId activityInvitationId, String invitationLink) {
+        ActivityInvitation invitation = activityInvitationRepo.findOneByActivityInvitationIdAndInvitationLink(
+                activityInvitationId, invitationLink);
+
+        if (invitation == null) {
+            return new AcceptInvitationResponse(400,
+                                                "Invitation not found",
+                                                "/activities/invitations/invalid-invitation");
+        }
+
+        Activity activity = invitation.getActivity();
+        User user = invitation.getUser();
+
+        if (activity == null) {
+            return new AcceptInvitationResponse(400,
+                                                "Cannot find activity that you are invited to",
+                                                "/activities/invitations/invalid-invitation");
+        }
+
+        if (user == null) {
+            return new AcceptInvitationResponse(400,
+                                                "Cannot find user of the invitation",
+                                                "/activities/invitations/invalid-invitation");
+        }
+
+
+        if (Objects.equals(invitation.getStatus(), InvitationStatus.ACCEPTED.toString())) {
+            return new AcceptInvitationResponse(400,
+                                                "Invitation with to activity " + activityInvitationId.getActivityId() + " has already been invoked",
+                                                "/activities/invitations/invalid-invitation");
+        }
+
+        invitation.setStatus(InvitationStatus.ACCEPTED.toString());
+        activityInvitationRepo.save(invitation);
+
+        addUserToActivityParticipation(user, activity);
+
+        return new AcceptInvitationResponse(200, "Invitation accepted",
+                                            "/activities/" + activity.getTitle());
+    }
 
     @Transactional
     public Activity approveActivity(UUID activityId) {
