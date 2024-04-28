@@ -56,10 +56,11 @@ s3:
 application:
   security:
     jwt:
-      secret-key: c4d0b52d59e24b276649b9a0e98d12c7dd86193bbcb2748a8734831c0d539c9f
+      secret-key: ${JWT_SECRET_KEY}
       expiration: 86400000
       refresh-token:
         expiration: 604800000
+  frontend-base-url: ${FRONTEND_BASE_URL}
 
 springdoc:
   api-docs:
