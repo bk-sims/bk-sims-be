@@ -45,6 +45,7 @@ jobs:
           sed -i "s|<jwt_secret_key>|${{ secrets.JWT_SECRET_KEY }}|g" application-prod.yml
           sed -i "s|<mail_username>|${{ secrets.MAIL_USERNAME }}|g" application-prod.yml
           sed -i "s|<mail_password>|${{ secrets.MAIL_PASSWORD }}|g" application-prod.yml
+          sed -i "s|<frontend_base_url>|${{ secrets.FRONTEND_BASE_URL }}|g" application-prod.yml
 
       - name: Login to DockerHub
         run: docker login -u ${{secrets.DOCKERHUB_USER_NAME}} -p ${{secrets.DOCKERHUB_ACCESS_TOKEN}}
