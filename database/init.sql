@@ -117,7 +117,7 @@ CREATE TABLE admin (
 CREATE TABLE aao (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    CONSTRAINT fk_admin_aao FOREIGN KEY (user_id) REFERENCES "user"(id)
+    CONSTRAINT fk_aao_user FOREIGN KEY (user_id) REFERENCES "user"(id)
 );
 
 CREATE TABLE token (
@@ -137,9 +137,9 @@ CREATE TABLE course (
     introduction VARCHAR(255) NOT NULL,
     syllabus_file_name VARCHAR(255),
     exercise INT NOT NULL,
-    midterm INT NOT NULL,
+    midterm_exam INT NOT NULL,
     assignment INT NOT NULL,
-    final INT NOT NULL
+    final_exam INT NOT NULL
 );
 
 CREATE TABLE prerequisite (
@@ -148,6 +148,72 @@ CREATE TABLE prerequisite (
     CONSTRAINT fk_pre_course_id FOREIGN KEY (pre_course_id) REFERENCES course (id),
     CONSTRAINT fk_participation_user FOREIGN KEY (course_id) REFERENCES course (id)
 );
+
+CREATE TABLE semester (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) UNIQUE NOT NULL,
+);
+
+CREATE TABLE registration_period (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    start_time VARCHAR(255) NOT NULL,
+    end_time VARCHAR(255) NOT NULL,
+    semester_id UUID NOT NULL,
+    CONSTRAINT fk_registration_period_semester FOREIGN KEY (semester_id) REFERENCES semester (id),
+);
+
+CREATE TABLE proposed_course_class (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    campus VARCHAR(255) NOT NULL,
+    room VARCHAR(255) NOT NULL,
+    weeks VARCHAR(255) NOT NULL,
+    days VARCHAR(255) NOT NULL,
+    start_time VARCHAR(255) NOT NULL,
+    end_time VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL,
+    capacity INT NOT NULL,
+    current_enrollment INT NOT NULL,
+    course_id UUID NOT NULL,
+    lecturer_id UUID NOT NULL,
+    registration_period_id UUID NOT NULL,
+    CONSTRAINT unique_name_semester_course_proposed UNIQUE (name, type, registration_period_id, course_id),
+    CONSTRAINT fk_proposed_course_class_course FOREIGN KEY (course_id) REFERENCES course (id),
+    CONSTRAINT fk_proposed_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id),
+    CONSTRAINT fk_proposed_course_class_registration_period FOREIGN KEY (registration_period_id) REFERENCES registration_period (id)
+);
+
+CREATE TABLE course_class (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    campus VARCHAR(255) NOT NULL,
+    room VARCHAR(255) NOT NULL,
+    weeks VARCHAR(255) NOT NULL,
+    days VARCHAR(255) NOT NULL,
+    start_time VARCHAR(255) NOT NULL,
+    end_time VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL,
+    capacity INT NOT NULL,
+    current_enrollment INT NOT NULL,
+    semester_id UUID NOT NULL,
+    course_id UUID NOT NULL,
+    lecturer_id UUID NOT NULL,
+    CONSTRAINT unique_name_type_semester_course UNIQUE (name, type, semester_id, course_id)
+    CONSTRAINT fk_course_class_semester FOREIGN KEY (semester_id) REFERENCES semester (id),
+    CONSTRAINT fk_course_class_course FOREIGN KEY (course_id) REFERENCES course (id),
+    CONSTRAINT fk_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id),
+);
+
+CREATE TABLE temporary_course_class (
+    student_id UUID NOT NULL,
+    proposed_course_class_id UUID NOT NULL,
+    CONSTRAINT fk_temporary_course_class_student FOREIGN KEY (student_id) REFERENCES student (id),
+    CONSTRAINT fk_temporary_course_class_proposed_course_class FOREIGN KEY (proposed_course_class_id) REFERENCES proposed_course_class (id),
+    PRIMARY KEY (student_id, proposed_course_class_id)
+);
+
 
 -- Insert initial values for tables
 
@@ -330,7 +396,7 @@ INSERT INTO student (id, user_id, program_id, department_id) VALUES
 -- Inserting courses into the course table
 -- Test syllabus https://bk-sims-storage.s3.ap-northeast-2.amazonaws.com/syllabus/mock_syllabus.pdf
 -- Mon Dai Cuong
-INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm, assignment, final)
+INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
 VALUES 
     (uuid_generate_v4(), 'MT1003', 'Calculus 1', 3, 'Calculus course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'MT1005', 'Calculus 2', 2, 'Advanced Calculus course', NULL, 10, 20, 30, 40),
@@ -354,7 +420,7 @@ VALUES
     (uuid_generate_v4(), 'CO1005', 'Introduction to Computing', 2, 'Introduction to Computing course', NULL, 15, 20, 25, 40);
 
 -- Mon co so
-INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm, assignment, final)
+INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
 VALUES
     (uuid_generate_v4(), 'CO1007', 'Computer Organization and Assembly Language', 3, 'Computer Organization course', NULL, 10, 20, 25, 45),
     (uuid_generate_v4(), 'CO1027', 'Programming Fundamentals', 2, 'Programming Fundamentals course', NULL, 10, 20, 30, 40),
@@ -366,7 +432,7 @@ VALUES
     (uuid_generate_v4(), 'CO2007', 'Computer Architecture', 2, 'Computer Architecture course', NULL, 10, 15, 25, 50);
 
 -- Mon tu chon
-INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm, assignment, final)
+INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
 VALUES 
     (uuid_generate_v4(), 'CO3011', 'Software Project Management', 3, 'Software Project Management course', NULL, 15, 25, 30, 30),
     (uuid_generate_v4(), 'CO3015', 'Software Testing', 3, 'Software Testing course', NULL, 15, 20, 25, 40),
@@ -437,3 +503,187 @@ VALUES
     ((SELECT id FROM course WHERE course_code = 'CO1005'), (SELECT id FROM course WHERE course_code = 'CO2007')),
     ((SELECT id FROM course WHERE course_code = 'CO1023'), (SELECT id FROM course WHERE course_code = 'CO2007')),
     ((SELECT id FROM course WHERE course_code = 'SP1039'), (SELECT id FROM course WHERE course_code = 'SP1037'));
+
+-- Inserting semesters
+INSERT INTO semester (id, name) VALUES
+(uuid_generate_v4(), 'HK201'),
+(uuid_generate_v4(), 'HK202'),
+(uuid_generate_v4(), 'HK211'),
+(uuid_generate_v4(), 'HK212'),
+(uuid_generate_v4(), 'HK221'),
+(uuid_generate_v4(), 'HK222'),
+(uuid_generate_v4(), 'HK231'),
+(uuid_generate_v4(), 'HK232'),
+(uuid_generate_v4(), 'HK241');
+
+-- Inserting registration periods
+INSERT INTO registration_period (id, start_date, end_date, start_time, end_time, semester_id) VALUES
+(uuid_generate_v4(), '2024-05-05', '2021-06-15', '10:00', '15:00', (SELECT id FROM semester WHERE name = 'HK241'));
+
+
+
+-- Inserting proposed course classes
+INSERT INTO proposed_course_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, course_id, lecturer_id, registration_period_id) VALUES
+(
+    uuid_generate_v4(),
+    'CC01',
+    'LTK',
+    'B1-308',
+    '1,2,3,4,5,6,7,8,9,10',
+    '2',
+    '7:00',
+    '9:00',
+    'Theory',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    uuid_generate_v4(),
+    'CC02',
+    'LTK',
+    'B1-308',
+    '1,2,3,4,5,6,7,8,9,10',
+    '3',
+    '9:00',
+    '11:00',
+    'Theory',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    uuid_generate_v4(),
+    'CC03',
+    'LTK',
+    'B1-308',
+    '1,2,3,4,5,6,7,8,9,10',
+    '4',
+    '14:00',
+    '16:00',
+    'Theory',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    uuid_generate_v4(),
+    'CC01',
+    'LTK',
+    'C6-105',
+    '1,2,3,4,5,6,7,8,9,10',
+    '5',
+    '13:00',
+    '18:00',
+    'Lab',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    uuid_generate_v4(),
+    'CC02',
+    'LTK',
+    'C6-105',
+    '1,2,3,4,5,6,7,8,9,10',
+    '6',
+    '13:00',
+    '18:00',
+    'Lab',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    uuid_generate_v4(),
+    'CC03',
+    'LTK',
+    'C6-105',
+    '1,2,3,4,5,6,7,8,9,10',
+    '7',
+    '13:00',
+    '18:00',
+    'Lab',
+    100,
+    0,
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+);
+
+-- Inserting course classes
+INSERT INTO course_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, semester_id, course_id, lecturer_id) VALUES
+(
+    uuid_generate_v4(),
+    'CC01',
+    'LTK',
+    'B1-308',
+    '1,2,3,4,5,6,7,8,9,10',
+    '2',
+    '7:00',
+    '9:00',
+    'Theory',
+    100,
+    48,
+    (SELECT id FROM semester WHERE name = 'HK201'),
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
+),
+(
+    uuid_generate_v4(),
+    'CC02',
+    'LTK',
+    'B1-308',
+    '1,2,3,4,5,6,7,8,9,10',
+    '3',
+    '9:00',
+    '11:00',
+    'Theory',
+    100,
+    72,
+    (SELECT id FROM semester WHERE name = 'HK201'),
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
+),
+(
+    uuid_generate_v4(),
+    'CC01',
+    'LTK',
+    'C6-105',
+    '1,2,3,4,5,6,7,8,9,10',
+    '5',
+    '13:00',
+    '18:00',
+    'Lab',
+    100,
+    60,
+    (SELECT id FROM semester WHERE name = 'HK201'),
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
+),
+(
+    uuid_generate_v4(),
+    'CC02',
+    'LTK',
+    'C6-105',
+    '1,2,3,4,5,6,7,8,9,10',
+    '6',
+    '13:00',
+    '18:00',
+    'Lab',
+    100,
+    60,
+    (SELECT id FROM semester WHERE name = 'HK201'),
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
+);

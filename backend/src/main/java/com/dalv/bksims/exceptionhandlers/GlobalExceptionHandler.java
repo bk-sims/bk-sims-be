@@ -3,6 +3,7 @@ package com.dalv.bksims.exceptionhandlers;
 import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.AuthException;
+import com.dalv.bksims.exceptions.CapacityLimitException;
 import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.FieldBlankException;
@@ -154,6 +155,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityAlreadyExistsException.class)
     public ProblemDetail handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(CapacityLimitException.class)
+    public ProblemDetail handleCapacityLimitException(CapacityLimitException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;

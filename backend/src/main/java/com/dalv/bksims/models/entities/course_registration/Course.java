@@ -1,15 +1,12 @@
-package com.dalv.bksims.models.entities.user;
+package com.dalv.bksims.models.entities.course_registration;
 
-import com.dalv.bksims.models.entities.course_registration.CourseClass;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,22 +18,40 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "lecturer")
+@Table(name = "course")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Lecturer {
+public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    @JsonIgnore
-    private User user;
+    @Column(unique = true)
+    private String courseCode;
 
-    @OneToMany(mappedBy = "lecturer", fetch = FetchType.LAZY)
+    @Column(unique = true)
+    private String name;
+
+    private int credits;
+
+    private String introduction;
+
+    private String syllabusFileName;
+
+    private int exercise;
+
+    private int midtermExam;
+
+    private int assignment;
+
+    private int finalExam;
+
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
     private List<CourseClass> courseClasses;
+
+    @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
+    private List<ProposedCourseClass> proposedCourseClasses;
 }
