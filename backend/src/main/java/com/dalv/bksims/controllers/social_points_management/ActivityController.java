@@ -98,8 +98,8 @@ public class ActivityController {
             }
             default -> {
                 Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
-                                                                                                     offset, pageSize,
-                                                                                                     order, type);
+                        offset, pageSize,
+                        order, type);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
@@ -190,15 +190,17 @@ public class ActivityController {
                 .build();
         String invitationLink = payload.get("invitationLink");
         AcceptInvitationResponse acceptInvitationResponse = activityService.acceptInvitation(activityInvitationId,
-                                                                                             invitationLink);
+                invitationLink);
         return new ResponseEntity<>(acceptInvitationResponse, HttpStatus.OK);
     }
 
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})
     public ResponseEntity<Activity> approveActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
         UUID activityId = UUID.fromString(payload.get("activityId"));
-        Activity activity = activityService.approveActivity(activityId);
+        Activity activity = activityService.approveActivity(activityId, userEmail);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 
