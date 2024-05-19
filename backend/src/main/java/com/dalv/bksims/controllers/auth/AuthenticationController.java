@@ -6,6 +6,7 @@ import com.dalv.bksims.models.dtos.auth.AuthenticationResponse;
 import com.dalv.bksims.models.dtos.auth.RegisterRequest;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.services.auth.AuthenticationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
+@Tag(name = "Auth")
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
