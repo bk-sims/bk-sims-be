@@ -1,6 +1,6 @@
 package com.dalv.bksims.models.entities.user;
 
-import com.dalv.bksims.models.entities.course_registration.TemporaryCourseClass;
+import com.dalv.bksims.models.entities.course_registration.TemporaryClass;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -39,5 +39,5 @@ public class Student {
 
     @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
     @JsonIgnore
-    private Set<TemporaryCourseClass> temporaryCourseClasses;
+    private Set<TemporaryClass> temporaryClasses;
 }

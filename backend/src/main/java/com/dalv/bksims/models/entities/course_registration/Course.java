@@ -53,5 +53,5 @@ public class Course {
     private List<CourseClass> courseClasses;
 
     @OneToMany(mappedBy = "course", fetch = FetchType.LAZY)
-    private List<ProposedCourseClass> proposedCourseClasses;
+    private List<ProposedCourse> proposedCourses;
 }

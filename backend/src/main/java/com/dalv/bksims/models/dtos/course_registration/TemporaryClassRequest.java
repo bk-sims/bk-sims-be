@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.UUID;
 
-public record TemporaryCourseClassRequest(
-        @NotNull(message = "Proposed course class ID cannot be NULL") UUID proposedCourseClassId,
+public record TemporaryClassRequest(
+        @NotNull(message = "Proposed course class ID cannot be NULL") UUID proposedClassId,
         @NotNull(message = "User email cannot be NULL") String userEmail
 ) {
 }

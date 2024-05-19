@@ -151,7 +151,7 @@ CREATE TABLE prerequisite (
 
 CREATE TABLE semester (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE registration_period (
@@ -161,10 +161,18 @@ CREATE TABLE registration_period (
     start_time VARCHAR(255) NOT NULL,
     end_time VARCHAR(255) NOT NULL,
     semester_id UUID NOT NULL,
-    CONSTRAINT fk_registration_period_semester FOREIGN KEY (semester_id) REFERENCES semester (id),
+    CONSTRAINT fk_registration_period_semester FOREIGN KEY (semester_id) REFERENCES semester (id)
 );
 
-CREATE TABLE proposed_course_class (
+CREATE TABLE proposed_course (
+    course_id UUID NOT NULL,
+    registration_period_id UUID NOT NULL,
+    CONSTRAINT fk_proposed_course_course FOREIGN KEY (course_id) REFERENCES course (id),
+    CONSTRAINT fk_proposed_course_registration_period FOREIGN KEY (registration_period_id) REFERENCES registration_period (id),
+    PRIMARY KEY (course_id, registration_period_id)
+);
+
+CREATE TABLE proposed_class (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     campus VARCHAR(255) NOT NULL,
@@ -176,13 +184,12 @@ CREATE TABLE proposed_course_class (
     type VARCHAR(255) NOT NULL,
     capacity INT NOT NULL,
     current_enrollment INT NOT NULL,
-    course_id UUID NOT NULL,
     lecturer_id UUID NOT NULL,
+    course_id UUID NOT NULL,
     registration_period_id UUID NOT NULL,
     CONSTRAINT unique_name_semester_course_proposed UNIQUE (name, type, registration_period_id, course_id),
-    CONSTRAINT fk_proposed_course_class_course FOREIGN KEY (course_id) REFERENCES course (id),
-    CONSTRAINT fk_proposed_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id),
-    CONSTRAINT fk_proposed_course_class_registration_period FOREIGN KEY (registration_period_id) REFERENCES registration_period (id)
+    CONSTRAINT fk_proposed_class_proposed_course FOREIGN KEY (course_id, registration_period_id) REFERENCES proposed_course(course_id, registration_period_id),
+    CONSTRAINT fk_proposed_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id)
 );
 
 CREATE TABLE course_class (
@@ -200,18 +207,18 @@ CREATE TABLE course_class (
     semester_id UUID NOT NULL,
     course_id UUID NOT NULL,
     lecturer_id UUID NOT NULL,
-    CONSTRAINT unique_name_type_semester_course UNIQUE (name, type, semester_id, course_id)
+    CONSTRAINT unique_name_type_semester_course UNIQUE (name, type, semester_id, course_id),
     CONSTRAINT fk_course_class_semester FOREIGN KEY (semester_id) REFERENCES semester (id),
     CONSTRAINT fk_course_class_course FOREIGN KEY (course_id) REFERENCES course (id),
-    CONSTRAINT fk_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id),
+    CONSTRAINT fk_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id)
 );
 
-CREATE TABLE temporary_course_class (
+CREATE TABLE temporary_class (
     student_id UUID NOT NULL,
-    proposed_course_class_id UUID NOT NULL,
-    CONSTRAINT fk_temporary_course_class_student FOREIGN KEY (student_id) REFERENCES student (id),
-    CONSTRAINT fk_temporary_course_class_proposed_course_class FOREIGN KEY (proposed_course_class_id) REFERENCES proposed_course_class (id),
-    PRIMARY KEY (student_id, proposed_course_class_id)
+    proposed_class_id UUID NOT NULL,
+    CONSTRAINT fk_temporary_class_student FOREIGN KEY (student_id) REFERENCES student (id),
+    CONSTRAINT fk_temporary_class_proposed_class FOREIGN KEY (proposed_class_id) REFERENCES proposed_class (id),
+    PRIMARY KEY (student_id, proposed_class_id)
 );
 
 
@@ -399,11 +406,11 @@ INSERT INTO student (id, user_id, program_id, department_id) VALUES
 INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
 VALUES 
     (uuid_generate_v4(), 'MT1003', 'Calculus 1', 3, 'Calculus course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'MT1005', 'Calculus 2', 2, 'Advanced Calculus course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'MT1005', 'Calculus 2', 4, 'Advanced Calculus course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'MT1007', 'Linear Algebra', 3, 'Linear Algebra course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'PH1003', 'Physics 1', 2, 'Introduction to Physics course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'PH1003', 'Physics 1', 4, 'Introduction to Physics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'PH1007', 'Physics 2', 3, 'Advanced Physics course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'CH1003', 'General Chemistry', 2, 'Introduction to Chemistry course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'CH1003', 'General Chemistry', 3, 'Introduction to Chemistry course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'MT2013', 'Probability and Statistics', 3, 'Probability and Statistics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'SP1031', 'Marxist and Leninist Philosophy', 3, 'Philosophy course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'SP1033', 'Marxist and Leninist Political Economy', 2, 'Political Economy course', NULL, 10, 20, 30, 40),
@@ -414,22 +421,22 @@ VALUES
     (uuid_generate_v4(), 'IM1013', 'General Economics', 3, 'Introduction to Economics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM1023', 'Production Management for Engineers', 2, 'Production Management course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM1025', 'Project Management for Engineers', 3, 'Project Management course', NULL, 10, 20, 30, 40),
-    (uuid_generate_v4(), 'IM1027', 'Engineering Economics', 2, 'Engineering Economics course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'IM1027', 'Engineering Economics', 3, 'Engineering Economics course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'IM3001', 'Business Administration for Engineers', 3, 'Business Administration course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO1023', 'Digital Systems', 3, 'Digital Systems course', NULL, 20, 25, 25, 30),
-    (uuid_generate_v4(), 'CO1005', 'Introduction to Computing', 2, 'Introduction to Computing course', NULL, 15, 20, 25, 40);
+    (uuid_generate_v4(), 'CO1005', 'Introduction to Computing', 3, 'Introduction to Computing course', NULL, 15, 20, 25, 40);
 
 -- Mon co so
 INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
 VALUES
     (uuid_generate_v4(), 'CO1007', 'Computer Organization and Assembly Language', 3, 'Computer Organization course', NULL, 10, 20, 25, 45),
-    (uuid_generate_v4(), 'CO1027', 'Programming Fundamentals', 2, 'Programming Fundamentals course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'CO1027', 'Programming Fundamentals', 3, 'Programming Fundamentals course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO3093', 'Computer Networking', 3, 'Computer Networking course', NULL, 15, 20, 25, 40),
     (uuid_generate_v4(), 'CO3001', 'Software Engineering', 3, 'Software Engineering course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO2017', 'Operating Systems', 3, 'Operating Systems course', NULL, 15, 20, 30, 35),
-    (uuid_generate_v4(), 'CO2003', 'Data Structures & Algorithms', 2, 'Data Structures & Algorithms course', NULL, 10, 20, 30, 40),
+    (uuid_generate_v4(), 'CO2003', 'Data Structures & Algorithms', 4, 'Data Structures & Algorithms course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO2011', 'Mathematical Modeling', 3, 'Mathematical Modeling course', NULL, 15, 20, 25, 40),
-    (uuid_generate_v4(), 'CO2007', 'Computer Architecture', 2, 'Computer Architecture course', NULL, 10, 15, 25, 50);
+    (uuid_generate_v4(), 'CO2007', 'Computer Architecture', 4, 'Computer Architecture course', NULL, 10, 15, 25, 50);
 
 -- Mon tu chon
 INSERT INTO course (id, course_code, name, credits, introduction, syllabus_file_name, exercise, midterm_exam, assignment, final_exam)
@@ -521,9 +528,43 @@ INSERT INTO registration_period (id, start_date, end_date, start_time, end_time,
 (uuid_generate_v4(), '2024-05-05', '2021-06-15', '10:00', '15:00', (SELECT id FROM semester WHERE name = 'HK241'));
 
 
+-- Mon co so
+INSERT INTO proposed_course (course_id, registration_period_id) VALUES
+(
+    (SELECT id FROM course WHERE course_code = 'CO1007'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO1027'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO3093'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO3001'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO2017'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO2003'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO2011'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+),
+(
+    (SELECT id FROM course WHERE course_code = 'CO2007'),
+    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
+);
 
--- Inserting proposed course classes
-INSERT INTO proposed_course_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, course_id, lecturer_id, registration_period_id) VALUES
+-- Inserting proposed classes
+INSERT INTO proposed_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, course_id, lecturer_id, registration_period_id) VALUES
 (
     uuid_generate_v4(),
     'CC01',

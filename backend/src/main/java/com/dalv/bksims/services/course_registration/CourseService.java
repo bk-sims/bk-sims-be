@@ -4,17 +4,20 @@ import com.dalv.bksims.exceptions.CapacityLimitException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.course_registration.CourseClassGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.CourseGeneralResponse;
-import com.dalv.bksims.models.dtos.course_registration.TemporaryCourseClassRequest;
+import com.dalv.bksims.models.dtos.course_registration.TemporaryClassRequest;
 import com.dalv.bksims.models.entities.course_registration.AbstractCourseClass;
 import com.dalv.bksims.models.entities.course_registration.Course;
-import com.dalv.bksims.models.entities.course_registration.ProposedCourseClass;
-import com.dalv.bksims.models.entities.course_registration.TemporaryCourseClass;
-import com.dalv.bksims.models.entities.course_registration.TemporaryCourseClassId;
+import com.dalv.bksims.models.entities.course_registration.CourseClass;
+import com.dalv.bksims.models.entities.course_registration.ProposedClass;
+import com.dalv.bksims.models.entities.course_registration.ProposedCourse;
+import com.dalv.bksims.models.entities.course_registration.TemporaryClass;
+import com.dalv.bksims.models.entities.course_registration.TemporaryClassId;
 import com.dalv.bksims.models.entities.user.Student;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.repositories.course_registration.CourseRepository;
-import com.dalv.bksims.models.repositories.course_registration.ProposedCourseClassRepository;
-import com.dalv.bksims.models.repositories.course_registration.TemporaryCourseClassRepository;
+import com.dalv.bksims.models.repositories.course_registration.ProposedClassRepository;
+import com.dalv.bksims.models.repositories.course_registration.ProposedCourseRepository;
+import com.dalv.bksims.models.repositories.course_registration.TemporaryClassRepository;
 import com.dalv.bksims.models.repositories.user.StudentRepository;
 import com.dalv.bksims.models.repositories.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -24,6 +27,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 @Service
@@ -32,9 +37,11 @@ import java.util.UUID;
 public class CourseService {
     private final CourseRepository courseRepo;
 
-    private final ProposedCourseClassRepository proposedCourseClassRepo;
+    private final ProposedCourseRepository proposedCourseRepo;
 
-    private final TemporaryCourseClassRepository temporaryCourseClassRepo;
+    private final ProposedClassRepository proposedClassRepo;
+
+    private final TemporaryClassRepository temporaryClassRepo;
 
     private final UserRepository userRepo;
 
@@ -44,6 +51,15 @@ public class CourseService {
         String lecturerName = courseClass.getLecturer()
                 .getUser()
                 .getFirstName() + " " + courseClass.getLecturer().getUser().getLastName();
+
+        int credits = 0;
+        if (courseClass instanceof CourseClass) {
+            Course course = ((CourseClass) courseClass).getCourse();
+            credits = course.getCredits();
+        } else if (courseClass instanceof ProposedClass) {
+            Course course = ((ProposedClass) courseClass).getProposedCourse().getCourse();
+            credits = course.getCredits();
+        }
 
         return new CourseClassGeneralResponse(
                 courseClass.getId(),
@@ -55,7 +71,7 @@ public class CourseService {
                 courseClass.getStartTime(),
                 courseClass.getEndTime(),
                 courseClass.getType(),
-                courseClass.getCourse().getCredits(),
+                credits,
                 courseClass.getCapacity(),
                 courseClass.getCurrentEnrollment(),
                 lecturerName
@@ -63,17 +79,29 @@ public class CourseService {
     }
 
     public List<CourseGeneralResponse> findProposedCoursesWithClassesBySearchValue(String searchValue) {
-        List<Course> courses = courseRepo.findByCourseCodeOrNameContaining(searchValue);
+        // Find proposed courses that contain search value in name
+        List<ProposedCourse> proposedCourses = proposedCourseRepo.findByCourseCodeOrNameContaining(searchValue);
         List<CourseGeneralResponse> result = new ArrayList<>();
-        List<CourseClassGeneralResponse> courseClassesResult = new ArrayList<>();
 
-        for (Course course : courses) {
-            List<ProposedCourseClass> courseClasses = course.getProposedCourseClasses();
-            for (ProposedCourseClass courseClass : courseClasses) {
+        // Find classes of each proposed course result
+        for (ProposedCourse proposedCourse : proposedCourses) {
+            Map<String, List<CourseClassGeneralResponse>> courseClassesMap = new TreeMap<>();
+            List<ProposedClass> proposedClasses = proposedCourse.getProposedClasses();
+
+            // The corresponding course of that proposed course
+            Course course = proposedCourse.getCourse();
+
+            for (ProposedClass proposedClass : proposedClasses) {
                 CourseClassGeneralResponse courseClassResult = getCourseClassGeneralResponse(
-                        courseClass);
+                        proposedClass);
 
-                courseClassesResult.add(courseClassResult);
+                if (!courseClassesMap.containsKey(proposedClass.getName())) {
+                    List<CourseClassGeneralResponse> courseClasses = new ArrayList<>();
+                    courseClasses.add(courseClassResult);
+                    courseClassesMap.put(proposedClass.getName(), courseClasses);
+                } else {
+                    courseClassesMap.get(proposedClass.getName()).add(courseClassResult);
+                }
             }
 
             CourseGeneralResponse courseResult = new CourseGeneralResponse(
@@ -81,7 +109,7 @@ public class CourseService {
                     course.getCourseCode(),
                     course.getName(),
                     course.getCredits(),
-                    courseClassesResult
+                    courseClassesMap
             );
 
             result.add(courseResult);
@@ -91,54 +119,55 @@ public class CourseService {
     }
 
     @Transactional
-    public TemporaryCourseClass addToTemporaryCourseClasses(TemporaryCourseClassRequest temporaryCourseClassRequest) {
-        ProposedCourseClass proposedCourseClass = proposedCourseClassRepo.findOneById(
-                temporaryCourseClassRequest.proposedCourseClassId());
-        User user = userRepo.findByEmail(temporaryCourseClassRequest.userEmail())
+    public TemporaryClass addToTemporaryClasses(TemporaryClassRequest temporaryClassRequest) {
+        ProposedClass proposedClass = proposedClassRepo.findOneById(
+                temporaryClassRequest.proposedClassId());
+        User user = userRepo.findByEmail(temporaryClassRequest.userEmail())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "User with email " + temporaryCourseClassRequest.userEmail() + " not found"));
+                        "User with email " + temporaryClassRequest.userEmail() + " not found"));
 
-        if (proposedCourseClass == null) {
+        if (proposedClass == null) {
             throw new EntityNotFoundException(
-                    "Proposed course class with ID " + temporaryCourseClassRequest.proposedCourseClassId() + " not found");
+                    "Proposed course class with ID " + temporaryClassRequest.proposedClassId() + " not found");
         }
 
         Student student = studentRepo.findByUserId(user.getId()).orElseThrow(() -> new EntityNotFoundException(
-                "Student with email " + temporaryCourseClassRequest.userEmail() + " not found"));
+                "Student with email " + temporaryClassRequest.userEmail() + " not found"));
 
         // Check if currentEnrollment is greater than or equal to capacity
-        if (proposedCourseClass.getCurrentEnrollment() >= proposedCourseClass.getCapacity()) {
+        if (proposedClass.getCurrentEnrollment() >= proposedClass.getCapacity()) {
             throw new CapacityLimitException(
-                    "Proposed course class with name " + proposedCourseClass.getName() + " is full");
+                    "Proposed course class with name " + proposedClass.getName() + " is full");
         }
 
-        TemporaryCourseClassId temporaryCourseClassId = TemporaryCourseClassId.builder()
-                .proposedCourseClassId(proposedCourseClass.getId())
+        // Check if class start time end time overlap with others
+
+        TemporaryClassId temporaryClassId = TemporaryClassId.builder()
+                .proposedClassId(proposedClass.getId())
                 .studentId(student.getId())
                 .build();
 
-        TemporaryCourseClass temporaryCourseClass = TemporaryCourseClass.builder()
-                .temporaryCourseClassId(temporaryCourseClassId)
-                .proposedCourseClass(proposedCourseClass)
+        TemporaryClass temporaryClass = TemporaryClass.builder()
+                .temporaryClassId(temporaryClassId)
+                .proposedClass(proposedClass)
                 .student(student)
                 .build();
 
-        proposedCourseClass.setCurrentEnrollment(proposedCourseClass.getCurrentEnrollment() + 1);
+        proposedClass.setCurrentEnrollment(proposedClass.getCurrentEnrollment() + 1);
 
-        proposedCourseClassRepo.save(proposedCourseClass);
-        temporaryCourseClassRepo.save(temporaryCourseClass);
+        proposedClassRepo.save(proposedClass);
+        temporaryClassRepo.save(temporaryClass);
 
-        return temporaryCourseClass;
+        return temporaryClass;
     }
 
     @Transactional
-    public List<CourseClassGeneralResponse> findTemporaryCoursesByStudentId(String studentId) {
+    public List<CourseClassGeneralResponse> findTemporaryClassesByStudentId(String studentId) {
         UUID studentUUID = UUID.fromString(studentId);
         studentRepo.findById(studentUUID)
                 .orElseThrow(() -> new EntityNotFoundException("Student with id " + studentId + " not found"));
 
-        return temporaryCourseClassRepo.findAllByStudentId(UUID.fromString(studentId));
-//        return null;
+        return temporaryClassRepo.findAllByStudentId(UUID.fromString(studentId));
     }
 
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -22,13 +23,13 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "proposed_course_class")
+@Table(name = "proposed_class")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class ProposedCourseClass extends AbstractCourseClass {
+public class ProposedClass extends AbstractCourseClass {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     protected UUID id;
@@ -55,21 +56,19 @@ public class ProposedCourseClass extends AbstractCourseClass {
     protected int currentEnrollment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id")
-    @JsonIgnore
-    protected Course course;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lecturer_id")
     @JsonIgnore
     protected Lecturer lecturer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "registration_period_id")
+    @OneToMany(mappedBy = "proposedClass", fetch = FetchType.LAZY)
     @JsonIgnore
-    protected RegistrationPeriod registrationPeriod;
+    protected Set<TemporaryClass> temporaryClasses;
 
-    @OneToMany(mappedBy = "proposedCourseClass", fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumns({
+            @JoinColumn(name = "course_id", referencedColumnName = "course_id"),
+            @JoinColumn(name = "registration_period_id", referencedColumnName = "registration_period_id")
+    })
     @JsonIgnore
-    protected Set<TemporaryCourseClass> temporaryCourseClasses;
+    protected ProposedCourse proposedCourse;
 }

@@ -14,24 +14,23 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "temporary_course_class")
+@Table(name = "temporary_class")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class TemporaryCourseClass {
+public class TemporaryClass {
     @EmbeddedId
-    private TemporaryCourseClassId temporaryCourseClassId;
+    private TemporaryClassId temporaryClassId;
 
     @ManyToOne
-    @MapsId("proposed_course_class_id")
-    @JoinColumn(name = "proposed_course_class_id")
-    private ProposedCourseClass proposedCourseClass;
+    @MapsId("proposed_class_id")
+    @JoinColumn(name = "proposed_class_id")
+    private ProposedClass proposedClass;
 
     @ManyToOne
     @MapsId("student_id")
     @JoinColumn(name = "student_id")
     private Student student;
-
 }

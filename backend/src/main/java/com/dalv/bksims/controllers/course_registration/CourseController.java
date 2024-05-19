@@ -2,9 +2,9 @@ package com.dalv.bksims.controllers.course_registration;
 
 import com.dalv.bksims.models.dtos.course_registration.CourseClassGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.CourseGeneralResponse;
-import com.dalv.bksims.models.dtos.course_registration.TemporaryCourseClassRequest;
-import com.dalv.bksims.models.entities.course_registration.TemporaryCourseClass;
-import com.dalv.bksims.models.entities.course_registration.TemporaryCourseClassId;
+import com.dalv.bksims.models.dtos.course_registration.TemporaryClassRequest;
+import com.dalv.bksims.models.entities.course_registration.TemporaryClass;
+import com.dalv.bksims.models.entities.course_registration.TemporaryClassId;
 import com.dalv.bksims.services.course_registration.CourseService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -42,27 +42,27 @@ public class CourseController {
     // Get all temporary course classes
     @GetMapping("/temporary/{studentId}")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<List<CourseClassGeneralResponse>> findTemporaryCoursesByStudentId(@PathVariable String studentId) {
-        List<CourseClassGeneralResponse> result = courseService.findTemporaryCoursesByStudentId(studentId);
+    public ResponseEntity<List<CourseClassGeneralResponse>> findTemporaryClassesByStudentId(@PathVariable String studentId) {
+        List<CourseClassGeneralResponse> result = courseService.findTemporaryClassesByStudentId(studentId);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @PostMapping("/temporary")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
-    public ResponseEntity<TemporaryCourseClassId> addToTemporaryCourseClasses(
+    public ResponseEntity<TemporaryClassId> addToTemporaryClasses(
             @RequestBody
             Map<String, String> payload
     ) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = authentication.getName();
 
-        TemporaryCourseClassRequest request = new TemporaryCourseClassRequest(
-                UUID.fromString(payload.get("proposedCourseClassId")),
+        TemporaryClassRequest request = new TemporaryClassRequest(
+                UUID.fromString(payload.get("proposedClassId")),
                 userEmail
         );
 
-        TemporaryCourseClass result = courseService.addToTemporaryCourseClasses(request);
-        return new ResponseEntity<>(result.getTemporaryCourseClassId(), HttpStatus.OK);
+        TemporaryClass result = courseService.addToTemporaryClasses(request);
+        return new ResponseEntity<>(result.getTemporaryClassId(), HttpStatus.OK);
     }
 
 

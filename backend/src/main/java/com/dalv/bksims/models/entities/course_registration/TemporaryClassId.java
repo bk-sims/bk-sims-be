@@ -17,10 +17,10 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class TemporaryCourseClassId implements Serializable {
+public class TemporaryClassId implements Serializable {
     @Column(name = "student_id")
     private UUID studentId;
 
-    @Column(name = "proposed_course_class_id")
-    private UUID proposedCourseClassId;
+    @Column(name = "proposed_class_id")
+    private UUID proposedClassId;
 }

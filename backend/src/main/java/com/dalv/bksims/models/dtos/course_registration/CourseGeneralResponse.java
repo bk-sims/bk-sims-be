@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.dtos.course_registration;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record CourseGeneralResponse(
@@ -8,6 +9,6 @@ public record CourseGeneralResponse(
         String courseCode,
         String name,
         int credits,
-        List<CourseClassGeneralResponse> courseClasses
+        Map<String, List<CourseClassGeneralResponse>> courseClassesMap
 ) {
 }
