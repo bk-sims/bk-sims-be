@@ -64,6 +64,7 @@ CREATE TABLE activity_participation(
     activity_id UUID NOT NULL,
     user_id UUID NOT NULL,
     points_approved INT NOT NULL,
+    evidence_url VARCHAR(255),
     CONSTRAINT fk_participation_activity FOREIGN KEY (activity_id) REFERENCES activity (id),
     CONSTRAINT fk_participation_user FOREIGN KEY (user_id) REFERENCES "user"(id),
     PRIMARY KEY (activity_id, user_id)
