@@ -13,7 +13,7 @@ import java.util.Set;
 public class ActivityValidator {
     private static final Set<String> VALID_BANNER_FILE_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg");
     private static final Set<String> VALID_REGULATIONS_FILE_EXTENSIONS = Set.of(".pdf", ".docx");
-
+    private static final Set<String> VALID_EVIDENCE_FILE_EXTENSIONS = Set.of(".png", ".jpg", ".jpeg", ".pdf", ".docx");
 
     public static void validateBannerFile(MultipartFile bannerFile) throws InvalidFileExtensionException, FileTooLargeException {
         FileValidator.validateFileSize(bannerFile);
@@ -29,6 +29,15 @@ public class ActivityValidator {
 
         String regulationsFileExtension = FileValidator.getFileExtension(regulationsFile.getOriginalFilename());
         if (regulationsFileExtension == null || !VALID_REGULATIONS_FILE_EXTENSIONS.contains(regulationsFileExtension.toLowerCase())) {
+            throw new InvalidFileExtensionException("The system only supports .pdf, .docx extension for the regulations file");
+        }
+    }
+
+    public static void validateEvidenceFile(MultipartFile evidenceFile) throws InvalidFileExtensionException, FileTooLargeException {
+        FileValidator.validateFileSize(evidenceFile);
+
+        String evidenceFileExtension = FileValidator.getFileExtension(evidenceFile.getOriginalFilename());
+        if (evidenceFileExtension == null || !VALID_EVIDENCE_FILE_EXTENSIONS.contains(evidenceFileExtension.toLowerCase())) {
             throw new InvalidFileExtensionException("The system only supports .pdf, .docx extension for the regulations file");
         }
     }

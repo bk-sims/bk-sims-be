@@ -39,6 +39,17 @@ public class S3Service {
         return fileName;
     }
 
+    public String uploadFileForActivityEvidence(MultipartFile file) {
+        File fileObj = convertMultiPartFileToFile(file);
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        log.info(bucketName, fileName, fileObj);
+
+        // new file will be added in /activity_evidence folder
+        s3Client.putObject(new PutObjectRequest(bucketName,  "activity_evidence/" + fileName, fileObj));
+        fileObj.delete();
+        return fileName;
+    }
+
     public void deleteFileForActivity(String fileURL) {
         AmazonS3URI fileURI = new AmazonS3URI(fileURL);
         String keyName = fileURI.getKey();

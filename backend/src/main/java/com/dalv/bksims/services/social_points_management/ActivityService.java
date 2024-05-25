@@ -6,6 +6,9 @@ import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceGetResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityHistoryResponse;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
@@ -172,6 +175,7 @@ public class ActivityService {
         activityParticipationId.setUserId(user.getId());
         activityParticipation.setActivityParticipationId(activityParticipationId);
         activityParticipation.setPointsApproved(0);
+        activityParticipation.setEvidenceUrl(null);
 
         activityParticipation.setActivity(activity);
         activityParticipation.setUser(user);
@@ -560,5 +564,85 @@ public class ActivityService {
 
         activity.setStatus("REJECTED");
         return activityRepo.save(activity);
+    }
+
+    @Transactional
+    public ActivityParticipation uploadEvidence(ActivityEvidenceRequest activityEvidenceRequest, String email) {
+        UUID userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        UUID activityId = activityEvidenceRequest.activityId();
+
+        ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(userId).activityId(activityId).build();
+        ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                () -> new EntityNotFoundException("No user with email" + email + "participated in the activity with the id " + activityId));
+
+        MultipartFile evidenceFile = activityEvidenceRequest.file();
+        if (evidenceFile != null) {
+            ActivityValidator.validateEvidenceFile(evidenceFile);
+        }
+
+        String evidenceFileName = s3Service.uploadFileForActivityEvidence(evidenceFile);
+        String evidenceFileUrl = s3Service.getFileUrl(evidenceFileName, "activity_evidence/");
+
+        String currentEvidenceFileUrl = activityParticipation.getEvidenceUrl();
+
+        if (currentEvidenceFileUrl != null) {
+            s3Service.deleteFileForActivity(currentEvidenceFileUrl);
+        }
+        activityParticipation.setEvidenceUrl(evidenceFileUrl);
+        return activityParticipationRepo.save(activityParticipation);
+    }
+
+    public ActivityEvidenceGetResponse getEvidence(UUID activityId, String email) {
+        UUID userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(userId).activityId(activityId).build();
+
+        ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                () -> new EntityNotFoundException("No user with email" + email + "participated in the activity with the id " + activityId));
+        return new ActivityEvidenceGetResponse(userId, activityId, activityParticipation.getEvidenceUrl());
+    }
+
+    @Transactional
+    public List<ParticipantResponse> approvePoints(UUID activityId, List<UUID> participantsIds) {
+        Activity activity = activityRepo.findOneById(activityId);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with id " + activityId + " not found");
+        }
+
+        Integer pointsApproved = activity.getPoints();
+
+        List<ParticipantResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
+                activityId, participantsIds
+        );
+
+        List<UUID> foundIds = participants.stream()
+                .map(participantResponse -> participantResponse.user().getId())
+                .toList();
+
+        List<UUID> notFoundIds = participantsIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!notFoundIds.isEmpty()) {
+            throw new ParticipantsNotFoundException("Participants not found for IDs: " + notFoundIds);
+        }
+
+        for (UUID participantId : participantsIds) {
+            ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(participantId).activityId(activityId).build();
+            ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                    () -> new EntityNotFoundException("No students with the id" + participantId + "participated in the activity with the id " + activityId));
+            activityParticipation.setPointsApproved(pointsApproved);
+            activityParticipationRepo.save(activityParticipation);
+        }
+        return activityParticipationRepo.findParticipantsByActivityId(
+                activityId);
+    }
+
+    public List<ActivityHistoryResponse> findActivityHistoryBasedOnUserId(UUID userId, String email) {
+        if (email != null) {
+            userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        }
+        return activityParticipationRepo.findActivityHistoryByUserId(userId);
     }
 }
