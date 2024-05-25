@@ -4,6 +4,8 @@ import com.dalv.bksims.models.entities.user.User;
 
 public record ParticipantResponse(
         User user,
-        Integer pointsApproved
+        Integer pointsApproved,
+
+        String evidenceUrl
 ) {
 }

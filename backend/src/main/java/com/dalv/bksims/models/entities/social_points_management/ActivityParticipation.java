@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.entities.social_points_management;
 
 import com.dalv.bksims.models.entities.user.User;
+import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -38,4 +39,6 @@ public class ActivityParticipation {
     private User user;
 
     private Integer pointsApproved;
+
+    private String evidenceUrl;
 }
