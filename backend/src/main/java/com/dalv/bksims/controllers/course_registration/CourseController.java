@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -70,7 +71,27 @@ public class CourseController {
 
 
     // Remove from registered course classes
+    @DeleteMapping("/registered")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<List<RegisteredClassId>> removeFromRegisteredClasses(
+            @RequestBody
+            Map<String, List<String>> payload
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
 
+        List<UUID> proposedClassIds = payload.get("proposedClassIds").stream()
+                .map(UUID::fromString)
+                .toList();
+
+        RegisteredClassRequest request = new RegisteredClassRequest(
+                proposedClassIds,
+                userEmail
+        );
+
+        List<RegisteredClass> result = courseService.removeFromRegisteredClasses(request);
+        return new ResponseEntity<>(result.stream().map(RegisteredClass::getRegisteredClassId).toList(), HttpStatus.OK);
+    }
 
     @GetMapping("/assigned/{semesterName}")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
