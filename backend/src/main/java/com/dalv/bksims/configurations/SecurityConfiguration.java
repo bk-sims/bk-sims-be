@@ -32,29 +32,32 @@ public class SecurityConfiguration {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req ->
-                                               req.requestMatchers(
-                                                               "/api/v1/auth/**",
-                                                               "/doc/api-docs",
-                                                               "/doc/swagger"
-                                                       )
-                                                       .permitAll()
-                                                       .anyRequest()
-                                                       .authenticated()
+                        req.requestMatchers(
+                                        "/api/v1/auth/**",
+                                        "/doc/api-docs/**",
+                                        "/doc/swagger",
+                                        "/doc/swagger-ui/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html"
+                                )
+                                .permitAll()
+                                .anyRequest()
+                                .authenticated()
 
                 )
                 .exceptionHandling(config ->
-                                           config.authenticationEntryPoint(authenticationEntryPoint))
+                        config.authenticationEntryPoint(authenticationEntryPoint))
                 .sessionManagement(config ->
-                                           config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(config ->
-                                config.logoutUrl("/api/v1/auth/logout")
-                                        .addLogoutHandler(logoutHandler)
-                                        .logoutSuccessHandler(
-                                                (request, response, authentication) ->
-                                                        SecurityContextHolder.clearContext()
-                                        )
+                        config.logoutUrl("/api/v1/auth/logout")
+                                .addLogoutHandler(logoutHandler)
+                                .logoutSuccessHandler(
+                                        (request, response, authentication) ->
+                                                SecurityContextHolder.clearContext()
+                                )
                 )
         ;
 

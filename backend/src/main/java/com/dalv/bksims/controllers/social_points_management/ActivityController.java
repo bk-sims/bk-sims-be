@@ -1,6 +1,10 @@
 package com.dalv.bksims.controllers.social_points_management;
 
 import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceGetResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityHistoryResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityPointsApprovalRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
@@ -27,7 +31,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -37,13 +40,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Activity")
-@Controller
+@RestController
 @RequestMapping("/api/v1/activities")
 @RequiredArgsConstructor
 public class ActivityController {
@@ -98,8 +102,8 @@ public class ActivityController {
             }
             default -> {
                 Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
-                                                                                                     offset, pageSize,
-                                                                                                     order, type);
+                        offset, pageSize,
+                        order, type);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
@@ -142,6 +146,50 @@ public class ActivityController {
     public ResponseEntity<List<ParticipantResponse>> getParticipantsByActivityTitle(@PathVariable String title) {
         List<ParticipantResponse> participants = activityService.getParticipantsByActivityTitle(title);
         return new ResponseEntity<>(participants, HttpStatus.OK);
+    }
+
+    @PostMapping("/evidence/upload")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<String> uploadEvidence(@ModelAttribute @Valid ActivityEvidenceRequest activityEvidenceRequest) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        ActivityParticipation activityParticipation = activityService.uploadEvidence(activityEvidenceRequest, userEmail);
+        return new ResponseEntity<>(activityParticipation.getEvidenceUrl(), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/evidence/{activityId}")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<ActivityEvidenceGetResponse> getPersonalEvidence(@PathVariable String activityId) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        ActivityEvidenceGetResponse activityParticipationResponse = activityService.getEvidence(UUID.fromString(activityId), userEmail);
+        return new ResponseEntity<>(activityParticipationResponse, HttpStatus.OK);
+    }
+
+
+    @PostMapping("/points/approve")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<List<ParticipantResponse>> approvePoints(@RequestBody ActivityPointsApprovalRequest activityPointsApprovalRequest) throws Exception {
+        UUID activityId = UUID.fromString(activityPointsApprovalRequest.activityId());
+        List<ParticipantResponse> participantResponse = activityService.approvePoints(
+                activityId, activityPointsApprovalRequest.participantsIds());
+        return new ResponseEntity<>(participantResponse, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/history/{userId}")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN", "ROLE_STUDENT"})
+    public ResponseEntity<List<ActivityHistoryResponse>> getActivityHistoryBasedOnUserId(@PathVariable UUID userId) {
+        List<ActivityHistoryResponse> activityHistoryResponseList = activityService.findActivityHistoryBasedOnUserId(userId, null);
+        return new ResponseEntity<>(activityHistoryResponseList, HttpStatus.OK);
+    }
+
+    @PostMapping("/history")
+    @Secured({"ROLE_STUDENT"})
+    public ResponseEntity<List<ActivityHistoryResponse>> getActivityHistory() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
+        List<ActivityHistoryResponse> activityHistoryResponseList = activityService.findActivityHistoryBasedOnUserId(null, userEmail);
+        return new ResponseEntity<>(activityHistoryResponseList, HttpStatus.OK);
     }
 
     @DeleteMapping("/participants")
@@ -190,15 +238,17 @@ public class ActivityController {
                 .build();
         String invitationLink = payload.get("invitationLink");
         AcceptInvitationResponse acceptInvitationResponse = activityService.acceptInvitation(activityInvitationId,
-                                                                                             invitationLink);
+                invitationLink);
         return new ResponseEntity<>(acceptInvitationResponse, HttpStatus.OK);
     }
 
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})
     public ResponseEntity<Activity> approveActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
         UUID activityId = UUID.fromString(payload.get("activityId"));
-        Activity activity = activityService.approveActivity(activityId);
+        Activity activity = activityService.approveActivity(activityId, userEmail);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 

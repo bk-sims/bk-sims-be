@@ -4,8 +4,12 @@ import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
+import com.dalv.bksims.exceptions.NoPermissionException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceGetResponse;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceRequest;
+import com.dalv.bksims.models.dtos.social_points_management.ActivityHistoryResponse;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRegistrationRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityRequest;
 import com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse;
@@ -15,6 +19,7 @@ import com.dalv.bksims.models.entities.social_points_management.ActivityInvitati
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
+import com.dalv.bksims.models.entities.user.Role;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.InvitationStatus;
 import com.dalv.bksims.models.enums.Status;
@@ -103,7 +108,7 @@ public class ActivityService {
         DateValidator.validateStartDateAndEndDate(activityRequest.startDate(), activityRequest.endDate());
         if (activityRequest.registrationStartDate() != null && activityRequest.registrationEndDate() != null) {
             DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(),
-                                                      activityRequest.registrationEndDate());
+                    activityRequest.registrationEndDate());
         }
         // Check validity of banner file
         MultipartFile bannerFile = activityRequest.bannerFile();
@@ -126,7 +131,7 @@ public class ActivityService {
         // Get file urls
         String bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
         String regulationsFileUrl = (regulationsFileName == null) ? null : s3Service.getFileUrl(regulationsFileName,
-                                                                                                organizationName + "/");
+                organizationName + "/");
 
         String activityType = null;
 
@@ -172,6 +177,7 @@ public class ActivityService {
         activityParticipationId.setUserId(user.getId());
         activityParticipation.setActivityParticipationId(activityParticipationId);
         activityParticipation.setPointsApproved(0);
+        activityParticipation.setEvidenceUrl(null);
 
         activityParticipation.setActivity(activity);
         activityParticipation.setUser(user);
@@ -214,7 +220,7 @@ public class ActivityService {
         DateValidator.validateStartDateAndEndDate(activityUpdateRequest.startDate(), activityUpdateRequest.endDate());
         if (activityUpdateRequest.registrationStartDate() != null && activityUpdateRequest.registrationEndDate() != null) {
             DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(),
-                                                      activityUpdateRequest.registrationEndDate());
+                    activityUpdateRequest.registrationEndDate());
         }
 
         activity.setStartDate(activityUpdateRequest.startDate());
@@ -279,8 +285,8 @@ public class ActivityService {
     }
 
     public Activity findOneActivityByTitle(String title) {
-        Activity post = activityRepo.findOneByTitle(title);
-        if (post != null) return post;
+        Activity activity = activityRepo.findOneByTitle(title);
+        if (activity != null) return activity;
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
@@ -465,13 +471,13 @@ public class ActivityService {
         String invitationLink = frontendBaseUrl + "/activities/invitations/accept/" + activity.getId() + "/" + randomUUID.toString();
 
         ActivityInvitation invitation = activityInvitationRepo.save(ActivityInvitation.builder()
-                                                                            .activityInvitationId(activityInvitationId)
-                                                                            .activity(activity)
-                                                                            .user(user)
-                                                                            .status(InvitationStatus.PENDING.toString())
-                                                                            .invitationLink(invitationLink)
-                                                                            .expired(false)
-                                                                            .build());
+                .activityInvitationId(activityInvitationId)
+                .activity(activity)
+                .user(user)
+                .status(InvitationStatus.PENDING.toString())
+                .invitationLink(invitationLink)
+                .expired(false)
+                .build());
 
         // Send email to the user
         String emailSubject = "[BKSims] Invitation to an activity";
@@ -491,8 +497,8 @@ public class ActivityService {
 
         if (invitation == null) {
             return new AcceptInvitationResponse(400,
-                                                "Invitation not found",
-                                                "/activities/invitations/invalid-invitation");
+                    "Invitation not found",
+                    "/activities/invitations/invalid-invitation");
         }
 
         Activity activity = invitation.getActivity();
@@ -500,21 +506,21 @@ public class ActivityService {
 
         if (activity == null) {
             return new AcceptInvitationResponse(400,
-                                                "Cannot find activity that you are invited to",
-                                                "/activities/invitations/invalid-invitation");
+                    "Cannot find activity that you are invited to",
+                    "/activities/invitations/invalid-invitation");
         }
 
         if (user == null) {
             return new AcceptInvitationResponse(400,
-                                                "Cannot find user of the invitation",
-                                                "/activities/invitations/invalid-invitation");
+                    "Cannot find user of the invitation",
+                    "/activities/invitations/invalid-invitation");
         }
 
 
         if (Objects.equals(invitation.getStatus(), InvitationStatus.ACCEPTED.toString())) {
             return new AcceptInvitationResponse(400,
-                                                "Invitation with to activity " + activityInvitationId.getActivityId() + " has already been invoked",
-                                                "/activities/invitations/invalid-invitation");
+                    "Invitation with to activity " + activityInvitationId.getActivityId() + " has already been invoked",
+                    "/activities/invitations/invalid-invitation");
         }
 
         invitation.setStatus(InvitationStatus.ACCEPTED.toString());
@@ -523,16 +529,24 @@ public class ActivityService {
         addUserToActivityParticipation(user, activity);
 
         return new AcceptInvitationResponse(200, "Invitation accepted",
-                                            "/activities/" + activity.getTitle());
+                "/activities/" + activity.getTitle());
     }
 
     @Transactional
-    public Activity approveActivity(UUID activityId) {
+    public Activity approveActivity(UUID activityId, String userEmail) {
         Activity activity = activityRepo.findOneById(activityId);
 
         if (activity == null) {
             throw new EntityNotFoundException(
                     "Activity with ID " + activityId + " not found");
+        }
+
+        Optional<User> user = userRepo.findByEmail(userEmail);
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with email " + userEmail + " not found");
+        }
+        if (user.get().getRole() != Role.ADMIN) {
+            throw new NoPermissionException("User must be admin to approve activity");
         }
 
         if (Objects.equals(activity.getStatus(), "OPEN")) {
@@ -560,5 +574,85 @@ public class ActivityService {
 
         activity.setStatus("REJECTED");
         return activityRepo.save(activity);
+    }
+
+    @Transactional
+    public ActivityParticipation uploadEvidence(ActivityEvidenceRequest activityEvidenceRequest, String email) {
+        UUID userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        UUID activityId = activityEvidenceRequest.activityId();
+
+        ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(userId).activityId(activityId).build();
+        ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                () -> new EntityNotFoundException("No user with email" + email + "participated in the activity with the id " + activityId));
+
+        MultipartFile evidenceFile = activityEvidenceRequest.file();
+        if (evidenceFile != null) {
+            ActivityValidator.validateEvidenceFile(evidenceFile);
+        }
+
+        String evidenceFileName = s3Service.uploadFileForActivityEvidence(evidenceFile);
+        String evidenceFileUrl = s3Service.getFileUrl(evidenceFileName, "activity_evidence/");
+
+        String currentEvidenceFileUrl = activityParticipation.getEvidenceUrl();
+
+        if (currentEvidenceFileUrl != null) {
+            s3Service.deleteFileForActivity(currentEvidenceFileUrl);
+        }
+        activityParticipation.setEvidenceUrl(evidenceFileUrl);
+        return activityParticipationRepo.save(activityParticipation);
+    }
+
+    public ActivityEvidenceGetResponse getEvidence(UUID activityId, String email) {
+        UUID userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(userId).activityId(activityId).build();
+
+        ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                () -> new EntityNotFoundException("No user with email" + email + "participated in the activity with the id " + activityId));
+        return new ActivityEvidenceGetResponse(userId, activityId, activityParticipation.getEvidenceUrl());
+    }
+
+    @Transactional
+    public List<ParticipantResponse> approvePoints(UUID activityId, List<UUID> participantsIds) {
+        Activity activity = activityRepo.findOneById(activityId);
+
+        if (activity == null) {
+            throw new EntityNotFoundException(
+                    "Activity with id " + activityId + " not found");
+        }
+
+        Integer pointsApproved = activity.getPoints();
+
+        List<ParticipantResponse> participants = activityParticipationRepo.findParticipantsByActivityIdByIdIn(
+                activityId, participantsIds
+        );
+
+        List<UUID> foundIds = participants.stream()
+                .map(participantResponse -> participantResponse.user().getId())
+                .toList();
+
+        List<UUID> notFoundIds = participantsIds.stream()
+                .filter(id -> !foundIds.contains(id))
+                .toList();
+
+        if (!notFoundIds.isEmpty()) {
+            throw new ParticipantsNotFoundException("Participants not found for IDs: " + notFoundIds);
+        }
+
+        for (UUID participantId : participantsIds) {
+            ActivityParticipationId activityParticipationId = ActivityParticipationId.builder().userId(participantId).activityId(activityId).build();
+            ActivityParticipation activityParticipation = activityParticipationRepo.findById(activityParticipationId).orElseThrow(
+                    () -> new EntityNotFoundException("No students with the id" + participantId + "participated in the activity with the id " + activityId));
+            activityParticipation.setPointsApproved(pointsApproved);
+            activityParticipationRepo.save(activityParticipation);
+        }
+        return activityParticipationRepo.findParticipantsByActivityId(
+                activityId);
+    }
+
+    public List<ActivityHistoryResponse> findActivityHistoryBasedOnUserId(UUID userId, String email) {
+        if (email != null) {
+            userId = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User with " + email + " not found")).getId();
+        }
+        return activityParticipationRepo.findActivityHistoryByUserId(userId);
     }
 }
