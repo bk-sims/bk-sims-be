@@ -1,18 +1,18 @@
 package com.dalv.bksims.models.entities.course_registration;
 
-import com.dalv.bksims.models.entities.user.Student;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.UUID;
 
 @Entity
 @Table(name = "assigned_class")
@@ -22,18 +22,22 @@ import lombok.Setter;
 @Setter
 @Builder
 public class AssignedClass {
-    @EmbeddedId
-    private AssignedClassId assignedClassId;
-
-    @ManyToOne
-    @MapsId("proposed_class_id")
-    @JoinColumn(name = "proposed_class_id")
-    @JsonIgnore
-    private ProposedClass proposedClass;
-
-    @ManyToOne
-    @MapsId("student_id")
-    @JoinColumn(name = "student_id")
-    @JsonIgnore
-    private Student student;
+    @Column(unique = true)
+    protected String courseCode;
+    protected String courseName;
+    protected String className;
+    protected String campus;
+    protected String room;
+    protected String weeks;
+    protected String days;
+    protected String startTime;
+    protected String endTime;
+    protected String type;
+    protected int credits;
+    protected int capacity;
+    protected String lecturerName;
+    protected String semesterName;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 }

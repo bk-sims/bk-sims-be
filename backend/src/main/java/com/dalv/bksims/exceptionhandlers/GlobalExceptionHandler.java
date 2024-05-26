@@ -11,6 +11,7 @@ import com.dalv.bksims.exceptions.FileTooLargeException;
 import com.dalv.bksims.exceptions.InvalidDateFormatException;
 import com.dalv.bksims.exceptions.InvalidDateRangeException;
 import com.dalv.bksims.exceptions.InvalidFileExtensionException;
+import com.dalv.bksims.exceptions.InvalidTokenException;
 import com.dalv.bksims.exceptions.NoPermissionException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -170,6 +171,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoPermissionException.class)
     public ProblemDetail handleNoPermissionException(NoPermissionException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ProblemDetail handleInvalidTokenException(InvalidTokenException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;

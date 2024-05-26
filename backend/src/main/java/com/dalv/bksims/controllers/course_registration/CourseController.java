@@ -39,7 +39,6 @@ public class CourseController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    // Get all registered course classes
     @GetMapping("/registered/{userId}")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<Map<String, List<CourseClassGeneralResponse>>> findRegisteredClassesByUserId(@PathVariable String userId) {
@@ -71,4 +70,12 @@ public class CourseController {
 
 
     // Remove from registered course classes
+
+
+    @GetMapping("/assigned/{semesterName}")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<Map<String, List<CourseClassGeneralResponse>>> findAssignedClassesBySemesterName(@PathVariable String semesterName) {
+        Map<String, List<CourseClassGeneralResponse>> result = courseService.findAssignedClassesBySemesterName(semesterName);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }

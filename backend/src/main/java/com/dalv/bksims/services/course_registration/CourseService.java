@@ -8,6 +8,7 @@ import com.dalv.bksims.models.dtos.course_registration.CourseClassGeneralRespons
 import com.dalv.bksims.models.dtos.course_registration.CourseGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.RegisteredClassRequest;
 import com.dalv.bksims.models.entities.course_registration.AbstractCourseClass;
+import com.dalv.bksims.models.entities.course_registration.AssignedClass;
 import com.dalv.bksims.models.entities.course_registration.Course;
 import com.dalv.bksims.models.entities.course_registration.CourseClass;
 import com.dalv.bksims.models.entities.course_registration.ProposedClass;
@@ -16,6 +17,7 @@ import com.dalv.bksims.models.entities.course_registration.RegisteredClass;
 import com.dalv.bksims.models.entities.course_registration.RegisteredClassId;
 import com.dalv.bksims.models.entities.user.Student;
 import com.dalv.bksims.models.entities.user.User;
+import com.dalv.bksims.models.repositories.course_registration.AssignedClassRepository;
 import com.dalv.bksims.models.repositories.course_registration.ProposedClassRepository;
 import com.dalv.bksims.models.repositories.course_registration.ProposedCourseRepository;
 import com.dalv.bksims.models.repositories.course_registration.RegisteredClassRepository;
@@ -48,6 +50,8 @@ public class CourseService {
     private final UserRepository userRepo;
 
     private final StudentRepository studentRepo;
+
+    private final AssignedClassRepository assignedClassRepo;
 
     private static CourseClassGeneralResponse getCourseClassGeneralResponse(AbstractCourseClass courseClass) {
         String lecturerName = courseClass.getLecturer()
@@ -286,6 +290,40 @@ public class CourseService {
                 result.put(key, courseClasses);
             } else {
                 result.get(key).add(registeredClass);
+            }
+        }
+
+        return result;
+    }
+
+    public Map<String, List<CourseClassGeneralResponse>> findAssignedClassesBySemesterName(String semesterName) {
+        List<AssignedClass> assignedClasses = assignedClassRepo.findBySemesterName(semesterName);
+        Map<String, List<CourseClassGeneralResponse>> result = new TreeMap<>();
+
+        for (AssignedClass assignedClass : assignedClasses) {
+            CourseClassGeneralResponse courseClassResult = new CourseClassGeneralResponse(
+                    assignedClass.getId(),
+                    assignedClass.getCourseCode(),
+                    assignedClass.getClassName(),
+                    assignedClass.getCampus(),
+                    assignedClass.getRoom(),
+                    assignedClass.getWeeks(),
+                    assignedClass.getDays(),
+                    assignedClass.getStartTime(),
+                    assignedClass.getEndTime(),
+                    assignedClass.getType(),
+                    assignedClass.getCredits(),
+                    assignedClass.getCapacity(),
+                    assignedClass.getCapacity(),
+                    assignedClass.getLecturerName()
+            );
+            String key = assignedClass.getCourseCode() + " - " + assignedClass.getCourseName();
+            if (!result.containsKey(key)) {
+                List<CourseClassGeneralResponse> courseClasses = new ArrayList<>();
+                courseClasses.add(courseClassResult);
+                result.put(key, courseClasses);
+            } else {
+                result.get(key).add(courseClassResult);
             }
         }
 
