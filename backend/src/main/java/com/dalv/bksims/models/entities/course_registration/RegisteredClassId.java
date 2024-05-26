@@ -17,7 +17,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
-public class TemporaryClassId implements Serializable {
+public class RegisteredClassId implements Serializable {
     @Column(name = "student_id")
     private UUID studentId;
 

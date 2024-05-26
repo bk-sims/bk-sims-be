@@ -1,6 +1,7 @@
 package com.dalv.bksims.models.entities.course_registration;
 
 import com.dalv.bksims.models.entities.user.Student;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -14,23 +15,25 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "temporary_class")
+@Table(name = "assigned_class")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class TemporaryClass {
+public class AssignedClass {
     @EmbeddedId
-    private TemporaryClassId temporaryClassId;
+    private AssignedClassId assignedClassId;
 
     @ManyToOne
     @MapsId("proposed_class_id")
     @JoinColumn(name = "proposed_class_id")
+    @JsonIgnore
     private ProposedClass proposedClass;
 
     @ManyToOne
     @MapsId("student_id")
     @JoinColumn(name = "student_id")
+    @JsonIgnore
     private Student student;
 }

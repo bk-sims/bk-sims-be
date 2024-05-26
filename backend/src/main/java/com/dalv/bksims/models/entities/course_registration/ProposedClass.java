@@ -62,7 +62,7 @@ public class ProposedClass extends AbstractCourseClass {
 
     @OneToMany(mappedBy = "proposedClass", fetch = FetchType.LAZY)
     @JsonIgnore
-    protected Set<TemporaryClass> temporaryClasses;
+    protected Set<RegisteredClass> registeredClasses;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({

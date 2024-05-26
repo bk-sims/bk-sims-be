@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record CourseClassGeneralResponse(
         UUID id,
+        String courseCode,
         String name,
         String campus,
         String room,

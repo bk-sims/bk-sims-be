@@ -213,11 +213,19 @@ CREATE TABLE course_class (
     CONSTRAINT fk_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id)
 );
 
-CREATE TABLE temporary_class (
+CREATE TABLE registered_class (
     student_id UUID NOT NULL,
     proposed_class_id UUID NOT NULL,
-    CONSTRAINT fk_temporary_class_student FOREIGN KEY (student_id) REFERENCES student (id),
-    CONSTRAINT fk_temporary_class_proposed_class FOREIGN KEY (proposed_class_id) REFERENCES proposed_class (id),
+    CONSTRAINT fk_registered_class_student FOREIGN KEY (student_id) REFERENCES student (id),
+    CONSTRAINT fk_registered_class_proposed_class FOREIGN KEY (proposed_class_id) REFERENCES proposed_class (id),
+    PRIMARY KEY (student_id, proposed_class_id)
+);
+
+CREATE TABLE assigned_class (
+    student_id UUID NOT NULL,
+    proposed_class_id UUID NOT NULL,
+    CONSTRAINT fk_assigned_class_student FOREIGN KEY (student_id) REFERENCES student (id),
+    CONSTRAINT fk_assigned_class_proposed_class FOREIGN KEY (proposed_class_id) REFERENCES proposed_class (id),
     PRIMARY KEY (student_id, proposed_class_id)
 );
 
@@ -728,3 +736,9 @@ INSERT INTO course_class (id, name, campus, room, weeks, days, start_time, end_t
     (SELECT id FROM course WHERE course_code = 'CO1027'),
     (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
 );
+
+-- Inserting assigned classes for displaying registration result purpose
+
+
+
+-- Inserting registered classes for displaying registration history purpose
