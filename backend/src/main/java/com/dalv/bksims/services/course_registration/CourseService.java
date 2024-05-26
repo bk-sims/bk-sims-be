@@ -296,6 +296,54 @@ public class CourseService {
         return result;
     }
 
+    @Transactional
+    public List<RegisteredClass> removeFromRegisteredClasses(RegisteredClassRequest registeredClassRequest) {
+        List<UUID> proposedClassIds = registeredClassRequest.proposedClassIds();
+        List<ProposedClass> proposedClasses = proposedClassRepo.findAllById(proposedClassIds);
+
+        User user = userRepo.findByEmail(registeredClassRequest.userEmail())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "User with email " + registeredClassRequest.userEmail() + " not found"));
+
+        if (proposedClasses.isEmpty() || proposedClasses.size() != proposedClassIds.size()) {
+            throw new EntityNotFoundException(
+                    "Course classes not found");
+        }
+
+        Student student = studentRepo.findByUserId(user.getId()).orElseThrow(() -> new EntityNotFoundException(
+                "Student with email " + registeredClassRequest.userEmail() + " not found"));
+
+        // Check if the proposed classes are already registered
+        for (ProposedClass proposedClass : proposedClasses) {
+            String courseCode = proposedClass.getProposedCourse().getCourse().getCourseCode();
+            List<RegisteredClass> existingRegisteredClassesByCourseCode = registeredClassRepo.findOneByCourseCode(courseCode);
+
+            if (existingRegisteredClassesByCourseCode.isEmpty()) {
+                throw new EntityNotFoundException(
+                        "Course with code " + courseCode + " is not registered");
+            }
+        }
+
+        // Remove from registered classes
+        List<RegisteredClass> registeredClasses = new ArrayList<>();
+        for (ProposedClass proposedClass : proposedClasses) {
+            RegisteredClassId registeredClassId = RegisteredClassId.builder()
+                    .proposedClassId(proposedClass.getId())
+                    .studentId(student.getId())
+                    .build();
+
+            RegisteredClass registeredClass = registeredClassRepo.findOneByRegisteredClassId(registeredClassId);
+            registeredClassRepo.delete(registeredClass);
+
+            proposedClass.setCurrentEnrollment(proposedClass.getCurrentEnrollment() - 1);
+            proposedClassRepo.save(proposedClass);
+
+            registeredClasses.add(registeredClass);
+        }
+
+        return registeredClasses;
+    }
+
     public Map<String, List<CourseClassGeneralResponse>> findAssignedClassesBySemesterName(String semesterName) {
         List<AssignedClass> assignedClasses = assignedClassRepo.findBySemesterName(semesterName);
         Map<String, List<CourseClassGeneralResponse>> result = new TreeMap<>();
