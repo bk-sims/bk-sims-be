@@ -165,6 +165,13 @@ CREATE TABLE registration_period (
     CONSTRAINT fk_registration_period_semester FOREIGN KEY (semester_id) REFERENCES semester (id)
 );
 
+CREATE TABLE course_proposal (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    excel_file_name VARCHAR(255) NOT NULL,
+    excel_file_url VARCHAR(255) NOT NULL,
+    status VARCHAR(20) NOT NULL
+);
+
 CREATE TABLE proposed_course (
     course_id UUID NOT NULL,
     registration_period_id UUID NOT NULL,
@@ -191,27 +198,6 @@ CREATE TABLE proposed_class (
     CONSTRAINT unique_name_semester_course_proposed UNIQUE (name, type, registration_period_id, course_id),
     CONSTRAINT fk_proposed_class_proposed_course FOREIGN KEY (course_id, registration_period_id) REFERENCES proposed_course(course_id, registration_period_id),
     CONSTRAINT fk_proposed_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id)
-);
-
-CREATE TABLE course_class (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    campus VARCHAR(255) NOT NULL,
-    room VARCHAR(255) NOT NULL,
-    weeks VARCHAR(255) NOT NULL,
-    days VARCHAR(255) NOT NULL,
-    start_time VARCHAR(255) NOT NULL,
-    end_time VARCHAR(255) NOT NULL,
-    type VARCHAR(255) NOT NULL,
-    capacity INT NOT NULL,
-    current_enrollment INT NOT NULL,
-    semester_id UUID NOT NULL,
-    course_id UUID NOT NULL,
-    lecturer_id UUID NOT NULL,
-    CONSTRAINT unique_name_type_semester_course UNIQUE (name, type, semester_id, course_id),
-    CONSTRAINT fk_course_class_semester FOREIGN KEY (semester_id) REFERENCES semester (id),
-    CONSTRAINT fk_course_class_course FOREIGN KEY (course_id) REFERENCES course (id),
-    CONSTRAINT fk_course_class_lecturer FOREIGN KEY (lecturer_id) REFERENCES lecturer (id)
 );
 
 CREATE TABLE registered_class (
@@ -376,7 +362,58 @@ INSERT INTO lecturer (id, user_id, department_id) VALUES
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'), 
     (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'nguyenvana@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'tranthib@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'levanc@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'phamthid@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'hoangvane@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'ngothif@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'vuvang@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'dangthih@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'buivani@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'dothij@hcmut.edu.vn'), 
+    (SELECT id FROM department WHERE name = 'Computer Science')
 );
+
 
 INSERT INTO student (id, user_id, program_id, department_id) VALUES
 (
@@ -384,46 +421,48 @@ INSERT INTO student (id, user_id, program_id, department_id) VALUES
     (SELECT id FROM "user" WHERE email = 'student@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'High Quality Program'),
     (SELECT id FROM department WHERE name = 'Computer Science')
-);
-
-INSERT INTO student (id, user_id, program_id, department_id) VALUES
+),
 (
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'student1@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'Talented Engineer Program'),
     (SELECT id FROM department WHERE name = 'Aerospace Engineering')
-);
-
-INSERT INTO student (id, user_id, program_id, department_id) VALUES
+),
 (
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'student2@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'Japan-Oriented Program'),
     (SELECT id FROM department WHERE name = 'Construction Materials Engineering')
-);
-
-INSERT INTO student (id, user_id, program_id, department_id) VALUES
+),
 (
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'student3@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'PFIEV'),
     (SELECT id FROM department WHERE name = 'Transportation Engineering')
-);
-
-INSERT INTO student (id, user_id, program_id, department_id) VALUES
+),
 (
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'student4@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'High Quality Program'),
     (SELECT id FROM department WHERE name = 'Food Technology')
-);
-
-INSERT INTO student (id, user_id, program_id, department_id) VALUES
+),
 (
     uuid_generate_v4(), 
     (SELECT id FROM "user" WHERE email = 'student5@hcmut.edu.vn'), 
     (SELECT id FROM program WHERE name = 'General Program'),
     (SELECT id FROM department WHERE name = 'Civil Engineering')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'hai.buiyoueyex2@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'General Program'),
+    (SELECT id FROM department WHERE name = 'Computer Science')
+),
+(
+    uuid_generate_v4(), 
+    (SELECT id FROM "user" WHERE email = 'luong.la218@hcmut.edu.vn'), 
+    (SELECT id FROM program WHERE name = 'General Program'),
+    (SELECT id FROM department WHERE name = 'Computer Science')
 );
 
 -- Inserting courses into the course table
@@ -460,6 +499,7 @@ VALUES
     (uuid_generate_v4(), 'CO3093', 'Computer Networking', 3, 'Computer Networking course', NULL, 15, 20, 25, 40),
     (uuid_generate_v4(), 'CO3001', 'Software Engineering', 3, 'Software Engineering course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO2017', 'Operating Systems', 3, 'Operating Systems course', NULL, 15, 20, 30, 35),
+    (uuid_generate_v4(), 'CO2013', 'Database Systems', 3, 'Database Systems course', NULL, 15, 20, 30, 35),
     (uuid_generate_v4(), 'CO2003', 'Data Structures & Algorithms', 4, 'Data Structures & Algorithms course', NULL, 10, 20, 30, 40),
     (uuid_generate_v4(), 'CO2011', 'Mathematical Modeling', 3, 'Mathematical Modeling course', NULL, 15, 20, 25, 40),
     (uuid_generate_v4(), 'CO2007', 'Computer Architecture', 4, 'Computer Architecture course', NULL, 10, 15, 25, 50);
@@ -552,208 +592,6 @@ INSERT INTO semester (id, name) VALUES
 -- Inserting registration periods
 INSERT INTO registration_period (id, start_date, end_date, start_time, end_time, semester_id) VALUES
 (uuid_generate_v4(), '2024-05-05', '2021-06-15', '10:00', '15:00', (SELECT id FROM semester WHERE name = 'HK241'));
-
-
--- Mon co so
-INSERT INTO proposed_course (course_id, registration_period_id) VALUES
-(
-    (SELECT id FROM course WHERE course_code = 'CO1007'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO3093'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO3001'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO2017'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO2003'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO2011'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    (SELECT id FROM course WHERE course_code = 'CO2007'),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-);
-
--- Inserting proposed classes
-INSERT INTO proposed_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, course_id, lecturer_id, registration_period_id) VALUES
-(
-    uuid_generate_v4(),
-    'CC01',
-    'LTK',
-    'B1-308',
-    '1,2,3,4,5,6,7,8,9,10',
-    '2',
-    '7:00',
-    '9:00',
-    'Theory',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    uuid_generate_v4(),
-    'CC02',
-    'LTK',
-    'B1-308',
-    '1,2,3,4,5,6,7,8,9,10',
-    '3',
-    '9:00',
-    '11:00',
-    'Theory',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    uuid_generate_v4(),
-    'CC03',
-    'LTK',
-    'B1-308',
-    '1,2,3,4,5,6,7,8,9,10',
-    '4',
-    '14:00',
-    '16:00',
-    'Theory',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    uuid_generate_v4(),
-    'CC01',
-    'LTK',
-    'C6-105',
-    '1,2,3,4,5,6,7,8,9,10',
-    '5',
-    '13:00',
-    '18:00',
-    'Lab',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    uuid_generate_v4(),
-    'CC02',
-    'LTK',
-    'C6-105',
-    '1,2,3,4,5,6,7,8,9,10',
-    '6',
-    '13:00',
-    '18:00',
-    'Lab',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-),
-(
-    uuid_generate_v4(),
-    'CC03',
-    'LTK',
-    'C6-105',
-    '1,2,3,4,5,6,7,8,9,10',
-    '7',
-    '13:00',
-    '18:00',
-    'Lab',
-    100,
-    0,
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn')),
-    (SELECT id FROM registration_period WHERE semester_id = (SELECT id FROM semester WHERE name = 'HK241'))
-);
-
--- Inserting course classes
-INSERT INTO course_class (id, name, campus, room, weeks, days, start_time, end_time, type, capacity, current_enrollment, semester_id, course_id, lecturer_id) VALUES
-(
-    uuid_generate_v4(),
-    'CC01',
-    'LTK',
-    'B1-308',
-    '1,2,3,4,5,6,7,8,9,10',
-    '2',
-    '7:00',
-    '9:00',
-    'Theory',
-    100,
-    48,
-    (SELECT id FROM semester WHERE name = 'HK201'),
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
-),
-(
-    uuid_generate_v4(),
-    'CC02',
-    'LTK',
-    'B1-308',
-    '1,2,3,4,5,6,7,8,9,10',
-    '3',
-    '9:00',
-    '11:00',
-    'Theory',
-    100,
-    72,
-    (SELECT id FROM semester WHERE name = 'HK201'),
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
-),
-(
-    uuid_generate_v4(),
-    'CC01',
-    'LTK',
-    'C6-105',
-    '1,2,3,4,5,6,7,8,9,10',
-    '5',
-    '13:00',
-    '18:00',
-    'Lab',
-    100,
-    60,
-    (SELECT id FROM semester WHERE name = 'HK201'),
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
-),
-(
-    uuid_generate_v4(),
-    'CC02',
-    'LTK',
-    'C6-105',
-    '1,2,3,4,5,6,7,8,9,10',
-    '6',
-    '13:00',
-    '18:00',
-    'Lab',
-    100,
-    60,
-    (SELECT id FROM semester WHERE name = 'HK201'),
-    (SELECT id FROM course WHERE course_code = 'CO1027'),
-    (SELECT id FROM lecturer WHERE user_id = (SELECT id FROM "user" WHERE email = 'lecturer@hcmut.edu.vn'))
-);
 
 -- Inserting assigned classes for displaying registration result purpose
 INSERT INTO assigned_class (id, course_code, course_name, class_name, campus, room, weeks, days, start_time, end_time, type, credits, capacity, lecturer_name, semester_name) VALUES

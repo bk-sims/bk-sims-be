@@ -1,32 +1,50 @@
 package com.dalv.bksims.services.course_registration;
 
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.dalv.bksims.exceptions.CapacityLimitException;
 import com.dalv.bksims.exceptions.ClassOverlapException;
 import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.models.dtos.course_registration.CourseClassGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.CourseGeneralResponse;
+import com.dalv.bksims.models.dtos.course_registration.CourseProposalDto;
 import com.dalv.bksims.models.dtos.course_registration.RegisteredClassRequest;
 import com.dalv.bksims.models.entities.course_registration.AbstractCourseClass;
 import com.dalv.bksims.models.entities.course_registration.AssignedClass;
 import com.dalv.bksims.models.entities.course_registration.Course;
-import com.dalv.bksims.models.entities.course_registration.CourseClass;
+import com.dalv.bksims.models.entities.course_registration.CourseProposal;
 import com.dalv.bksims.models.entities.course_registration.ProposedClass;
 import com.dalv.bksims.models.entities.course_registration.ProposedCourse;
+import com.dalv.bksims.models.entities.course_registration.ProposedCourseId;
 import com.dalv.bksims.models.entities.course_registration.RegisteredClass;
 import com.dalv.bksims.models.entities.course_registration.RegisteredClassId;
+import com.dalv.bksims.models.entities.course_registration.RegistrationPeriod;
+import com.dalv.bksims.models.entities.user.Lecturer;
 import com.dalv.bksims.models.entities.user.Student;
 import com.dalv.bksims.models.entities.user.User;
+import com.dalv.bksims.models.enums.CourseProposalStatus;
 import com.dalv.bksims.models.repositories.course_registration.AssignedClassRepository;
+import com.dalv.bksims.models.repositories.course_registration.CourseProposalRepository;
+import com.dalv.bksims.models.repositories.course_registration.CourseRepository;
 import com.dalv.bksims.models.repositories.course_registration.ProposedClassRepository;
 import com.dalv.bksims.models.repositories.course_registration.ProposedCourseRepository;
 import com.dalv.bksims.models.repositories.course_registration.RegisteredClassRepository;
+import com.dalv.bksims.models.repositories.course_registration.RegistrationPeriodRepository;
+import com.dalv.bksims.models.repositories.user.LecturerRepository;
 import com.dalv.bksims.models.repositories.user.StudentRepository;
 import com.dalv.bksims.models.repositories.user.UserRepository;
+import com.dalv.bksims.services.common.ExcelService;
+import com.dalv.bksims.services.common.S3Service;
+import com.dalv.bksims.validations.CourseProposalValidator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -34,13 +52,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CourseService {
+    private final CourseRepository courseRepo;
+
     private final ProposedCourseRepository proposedCourseRepo;
 
     private final ProposedClassRepository proposedClassRepo;
@@ -53,6 +75,16 @@ public class CourseService {
 
     private final AssignedClassRepository assignedClassRepo;
 
+    private final LecturerRepository lecturerRepo;
+
+    private final RegistrationPeriodRepository registrationPeriodRepo;
+
+    private final ExcelService excelService;
+
+    private final S3Service s3Service;
+
+    private final CourseProposalRepository courseProposalRepo;
+
     private static CourseClassGeneralResponse getCourseClassGeneralResponse(AbstractCourseClass courseClass) {
         String lecturerName = courseClass.getLecturer()
                 .getUser()
@@ -60,11 +92,7 @@ public class CourseService {
 
         int credits = 0;
         String courseCode = "";
-        if (courseClass instanceof CourseClass) {
-            Course course = ((CourseClass) courseClass).getCourse();
-            credits = course.getCredits();
-            courseCode = course.getCourseCode();
-        } else if (courseClass instanceof ProposedClass) {
+        if (courseClass instanceof ProposedClass) {
             Course course = ((ProposedClass) courseClass).getProposedCourse().getCourse();
             credits = course.getCredits();
             courseCode = course.getCourseCode();
@@ -140,6 +168,143 @@ public class CourseService {
             result.add(courseResult);
         }
 
+        return result;
+    }
+
+    public Page<CourseGeneralResponse> findProposedCoursesWithClassesPagination(int offset, int pageSize) {
+        Pageable pageRequest = PageRequest.of(offset - 1, pageSize);
+        Page<ProposedCourse> proposedCourses = proposedCourseRepo.findAll(pageRequest);
+
+        List<CourseGeneralResponse> result = new ArrayList<>();
+        for (ProposedCourse proposedCourse : proposedCourses) {
+            Map<String, List<CourseClassGeneralResponse>> courseClassesMap = new TreeMap<>();
+            List<ProposedClass> proposedClasses = proposedCourse.getProposedClasses();
+
+            Course course = proposedCourse.getCourse();
+
+            for (ProposedClass proposedClass : proposedClasses) {
+                CourseClassGeneralResponse courseClassResult = getCourseClassGeneralResponse(
+                        proposedClass);
+
+                if (!courseClassesMap.containsKey(proposedClass.getName())) {
+                    List<CourseClassGeneralResponse> courseClasses = new ArrayList<>();
+                    courseClasses.add(courseClassResult);
+                    courseClassesMap.put(proposedClass.getName(), courseClasses);
+                } else {
+                    courseClassesMap.get(proposedClass.getName()).add(courseClassResult);
+                }
+            }
+
+            CourseGeneralResponse courseResult = new CourseGeneralResponse(
+                    course.getId(),
+                    course.getCourseCode(),
+                    course.getName(),
+                    course.getCredits(),
+                    courseClassesMap
+            );
+
+            result.add(courseResult);
+        }
+
+        return new PageImpl<>(result, pageRequest, proposedCourses.getTotalElements());
+    }
+
+    @Transactional
+    public List<CourseProposal> findAllCourseProposal() {
+        return courseProposalRepo.findAll();
+    }
+
+
+    @Transactional
+    public CourseProposal uploadCourseProposal(MultipartFile excelFile) {
+        // Validate excel file
+        CourseProposalValidator.validateExcelFile(excelFile);
+
+        // Upload the excel file to S3 and retrieve the url
+        String organizationName = "Computer Science";
+        String excelFileName = s3Service.uploadFileForActivity(excelFile, organizationName);
+        String excelFileUrl = s3Service.getFileUrl(excelFileName, organizationName + "/");
+
+        // Create new course proposal
+        CourseProposal courseProposal = CourseProposal.builder()
+                .excelFileName(excelFileName)
+                .excelFileUrl(excelFileUrl)
+                .status(CourseProposalStatus.PENDING.toString())
+                .build();
+
+        return courseProposalRepo.save(courseProposal);
+    }
+
+    @Transactional
+    public Map<String, String> approveCourseProposal(String excelFileName) {
+        // Get excel file by name from S3
+        S3ObjectInputStream excelFile = s3Service.findFileByName("Computer Science", excelFileName);
+
+        // Read the excel file
+        List<CourseProposalDto> courseProposalList = excelService.readExcel(excelFile);
+
+        Set<String> courseCodes = courseProposalList.stream().map(CourseProposalDto::courseCode).collect(Collectors.toSet());
+        Set<String> lecturerCodes = courseProposalList.stream().map(CourseProposalDto::lecturerCode).collect(Collectors.toSet());
+
+        List<Course> courses = courseRepo.findCoursesByCourseCodeIn(courseCodes);
+        List<Lecturer> lecturers = lecturerRepo.findLecturersByLecturerCodeIn(lecturerCodes);
+
+        Map<String, Course> courseMap = new HashMap<>();
+        for (Course course : courses) {
+            courseMap.put(course.getCourseCode(), course);
+        }
+
+        Map<String, Lecturer> lecturerMap = new HashMap<>();
+        for (Lecturer lecturer : lecturers) {
+            lecturerMap.put(lecturer.getUser().getCode(), lecturer);
+        }
+
+        // Get current registration period
+        RegistrationPeriod registrationPeriod = registrationPeriodRepo.findRegistrationPeriodBySemesterName("HK241");
+
+        List<ProposedClass> proposedClasses = new ArrayList<>();
+        for (CourseProposalDto courseProposalDto : courseProposalList) {
+            Course course = courseMap.get(courseProposalDto.courseCode());
+            Lecturer lecturer = lecturerMap.get(courseProposalDto.lecturerCode());
+
+            ProposedCourseId proposedCourseId = ProposedCourseId.builder()
+                    .courseId(course.getId())
+                    .registrationPeriodId(registrationPeriod.getId())
+                    .build();
+            ProposedCourse proposedCourse = proposedCourseRepo.findProposedCourseByProposedCourseId(proposedCourseId);
+            if (proposedCourse == null) {
+                proposedCourse = ProposedCourse.builder()
+                        .proposedCourseId(proposedCourseId)
+                        .build();
+                proposedCourse = proposedCourseRepo.save(proposedCourse);
+            }
+
+            ProposedClass proposedClass = ProposedClass.builder()
+                    .name(courseProposalDto.className())
+                    .campus(courseProposalDto.campus())
+                    .room(courseProposalDto.room())
+                    .weeks(courseProposalDto.weeks())
+                    .days(courseProposalDto.days())
+                    .startTime(courseProposalDto.startTime())
+                    .endTime(courseProposalDto.endTime())
+                    .type(courseProposalDto.type())
+                    .capacity(courseProposalDto.capacity())
+                    .currentEnrollment(0)
+                    .proposedCourse(proposedCourse)
+                    .lecturer(lecturer)
+                    .build();
+
+            proposedClasses.add(proposedClass);
+        }
+        proposedClassRepo.saveAll(proposedClasses);
+
+        // Update course proposal status
+        CourseProposal courseProposal = courseProposalRepo.findByExcelFileName(excelFileName);
+        courseProposal.setStatus(CourseProposalStatus.APPROVED.toString());
+
+        Map<String, String> result = new HashMap<>();
+        result.put("coursesNumber", String.valueOf(courseCodes.size()));
+        result.put("classesNumber", String.valueOf(proposedClasses.size()));
         return result;
     }
 

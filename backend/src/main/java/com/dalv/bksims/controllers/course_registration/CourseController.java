@@ -3,11 +3,13 @@ package com.dalv.bksims.controllers.course_registration;
 import com.dalv.bksims.models.dtos.course_registration.CourseClassGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.CourseGeneralResponse;
 import com.dalv.bksims.models.dtos.course_registration.RegisteredClassRequest;
+import com.dalv.bksims.models.entities.course_registration.CourseProposal;
 import com.dalv.bksims.models.entities.course_registration.RegisteredClass;
 import com.dalv.bksims.models.entities.course_registration.RegisteredClassId;
 import com.dalv.bksims.services.course_registration.CourseService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -33,10 +36,42 @@ import java.util.UUID;
 public class CourseController {
     private final CourseService courseService;
 
+
     @GetMapping("/proposed")
     @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
     public ResponseEntity<List<CourseGeneralResponse>> findProposedCoursesWithClassesBySearchValue(@RequestParam(value = "value", required = false, defaultValue = "") String searchValue) {
         List<CourseGeneralResponse> result = courseService.findProposedCoursesWithClassesBySearchValue(searchValue);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @GetMapping("/proposed/{offset}/{pageSize}")
+    @Secured({"ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<Page<CourseGeneralResponse>> findProposedCoursesWithClassesPagination(
+            @PathVariable int offset,
+            @PathVariable int pageSize) {
+        Page<CourseGeneralResponse> result = courseService.findProposedCoursesWithClassesPagination(offset, pageSize);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @GetMapping("/course-proposal")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<List<CourseProposal>> findAllCourseProposal() {
+        List<CourseProposal> result = courseService.findAllCourseProposal();
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping("/course-proposal/upload")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<CourseProposal> uploadCourseProposal(@RequestParam("excelFile") MultipartFile excelFile) {
+        CourseProposal result = courseService.uploadCourseProposal(excelFile);
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @PostMapping("/course-proposal/approve")
+    @Secured({"ROLE_LECTURER", "ROLE_ADMIN"})
+    public ResponseEntity<Map<String, String>> approveCourseProposal(@RequestBody Map<String, String> payload) {
+        String excelFileName = payload.get("excelFileName");
+        Map<String, String> result = courseService.approveCourseProposal(excelFileName);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -69,8 +104,6 @@ public class CourseController {
         return new ResponseEntity<>(result.stream().map(RegisteredClass::getRegisteredClassId).toList(), HttpStatus.OK);
     }
 
-
-    // Remove from registered course classes
     @DeleteMapping("/registered")
     @Secured({"ROLE_STUDENT"})
     public ResponseEntity<List<RegisteredClassId>> removeFromRegisteredClasses(
@@ -99,4 +132,5 @@ public class CourseController {
         Map<String, List<CourseClassGeneralResponse>> result = courseService.findAssignedClassesBySemesterName(semesterName);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
 }
