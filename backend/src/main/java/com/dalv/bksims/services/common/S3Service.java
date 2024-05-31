@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,7 +44,7 @@ public class S3Service {
         log.info(bucketName, fileName, fileObj);
 
         // new file will be added in /activity_evidence folder
-        s3Client.putObject(new PutObjectRequest(bucketName,  "activity_evidence/" + fileName, fileObj));
+        s3Client.putObject(new PutObjectRequest(bucketName, "activity_evidence/" + fileName, fileObj));
         fileObj.delete();
         return fileName;
     }
@@ -69,10 +68,9 @@ public class S3Service {
         return bucketUrl + path + fileName;
     }
 
-    @Async
-    public S3ObjectInputStream findFileByName(String fileName) {
+    public S3ObjectInputStream findFileByName(String organizationName, String fileName) {
         log.info("Downloading file with name {}", fileName);
-        return s3Client.getObject(bucketName, fileName).getObjectContent();
+        return s3Client.getObject(bucketName, organizationName + "/" + fileName).getObjectContent();
     }
 
     private File convertMultiPartFileToFile(MultipartFile file) {

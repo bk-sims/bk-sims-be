@@ -1,6 +1,6 @@
 package com.dalv.bksims.models.entities.user;
 
-import com.dalv.bksims.models.entities.course_registration.CourseClass;
+import com.dalv.bksims.models.entities.course_registration.ProposedClass;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -38,5 +38,5 @@ public class Lecturer {
     private User user;
 
     @OneToMany(mappedBy = "lecturer", fetch = FetchType.LAZY)
-    private List<CourseClass> courseClasses;
+    private List<ProposedClass> proposedClasses;
 }
