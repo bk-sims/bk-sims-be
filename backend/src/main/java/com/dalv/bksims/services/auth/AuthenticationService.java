@@ -1,6 +1,7 @@
 package com.dalv.bksims.services.auth;
 
 import com.dalv.bksims.exceptions.AuthException;
+import com.dalv.bksims.exceptions.InvalidTokenException;
 import com.dalv.bksims.models.dtos.auth.AuthenticationRequest;
 import com.dalv.bksims.models.dtos.auth.AuthenticationResponse;
 import com.dalv.bksims.models.dtos.auth.RegisterRequest;
@@ -114,16 +115,19 @@ public class AuthenticationService {
         final String accessToken = authHeader.substring(7);
         final String userEmail = jwtService.extractUsername(accessToken);
 
+        User user = null;
         if (userEmail != null) {
-            User user = userRepository.findByEmail(userEmail)
+            user = userRepository.findByEmail(userEmail)
                     .orElseThrow();
 
-            if (jwtService.isTokenValid(accessToken, user)) {
-                return user;
+            Token token = tokenRepository.findByToken(accessToken)
+                    .orElseThrow();
+            if (token.revoked || token.expired || !jwtService.isTokenValid(accessToken, user)) {
+                throw new InvalidTokenException("Access is denied due to invalid token.");
             }
         }
 
-        return null;
+        return user;
     }
 
     public void refreshToken(

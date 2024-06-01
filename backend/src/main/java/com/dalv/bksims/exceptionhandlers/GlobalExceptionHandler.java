@@ -3,6 +3,7 @@ package com.dalv.bksims.exceptionhandlers;
 import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.AuthException;
+import com.dalv.bksims.exceptions.CapacityLimitException;
 import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
 import com.dalv.bksims.exceptions.FieldBlankException;
@@ -10,6 +11,8 @@ import com.dalv.bksims.exceptions.FileTooLargeException;
 import com.dalv.bksims.exceptions.InvalidDateFormatException;
 import com.dalv.bksims.exceptions.InvalidDateRangeException;
 import com.dalv.bksims.exceptions.InvalidFileExtensionException;
+import com.dalv.bksims.exceptions.InvalidTokenException;
+import com.dalv.bksims.exceptions.NoPermissionException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -64,7 +67,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ProblemDetail handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        problemDetail.setProperty("message", "The request body is missing or not in the expected format");
         return problemDetail;
     }
 
@@ -154,6 +157,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityAlreadyExistsException.class)
     public ProblemDetail handleEntityAlreadyExistsException(EntityAlreadyExistsException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(CapacityLimitException.class)
+    public ProblemDetail handleCapacityLimitException(CapacityLimitException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(NoPermissionException.class)
+    public ProblemDetail handleNoPermissionException(NoPermissionException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setProperty("message", ex.getLocalizedMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ProblemDetail handleInvalidTokenException(InvalidTokenException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setProperty("message", ex.getLocalizedMessage());
         return problemDetail;

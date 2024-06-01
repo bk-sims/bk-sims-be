@@ -4,6 +4,7 @@ import com.dalv.bksims.exceptions.ActivityStatusViolationException;
 import com.dalv.bksims.exceptions.ActivityTitleAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityAlreadyExistsException;
 import com.dalv.bksims.exceptions.EntityNotFoundException;
+import com.dalv.bksims.exceptions.NoPermissionException;
 import com.dalv.bksims.exceptions.ParticipantsNotFoundException;
 import com.dalv.bksims.models.dtos.social_points_management.AcceptInvitationResponse;
 import com.dalv.bksims.models.dtos.social_points_management.ActivityEvidenceGetResponse;
@@ -18,6 +19,7 @@ import com.dalv.bksims.models.entities.social_points_management.ActivityInvitati
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipation;
 import com.dalv.bksims.models.entities.social_points_management.ActivityParticipationId;
 import com.dalv.bksims.models.entities.social_points_management.Organization;
+import com.dalv.bksims.models.entities.user.Role;
 import com.dalv.bksims.models.entities.user.User;
 import com.dalv.bksims.models.enums.InvitationStatus;
 import com.dalv.bksims.models.enums.Status;
@@ -106,7 +108,7 @@ public class ActivityService {
         DateValidator.validateStartDateAndEndDate(activityRequest.startDate(), activityRequest.endDate());
         if (activityRequest.registrationStartDate() != null && activityRequest.registrationEndDate() != null) {
             DateValidator.validateStartDateAndEndDate(activityRequest.registrationStartDate(),
-                                                      activityRequest.registrationEndDate());
+                    activityRequest.registrationEndDate());
         }
         // Check validity of banner file
         MultipartFile bannerFile = activityRequest.bannerFile();
@@ -129,7 +131,7 @@ public class ActivityService {
         // Get file urls
         String bannerFileUrl = s3Service.getFileUrl(bannerFileName, organizationName + "/");
         String regulationsFileUrl = (regulationsFileName == null) ? null : s3Service.getFileUrl(regulationsFileName,
-                                                                                                organizationName + "/");
+                organizationName + "/");
 
         String activityType = null;
 
@@ -218,7 +220,7 @@ public class ActivityService {
         DateValidator.validateStartDateAndEndDate(activityUpdateRequest.startDate(), activityUpdateRequest.endDate());
         if (activityUpdateRequest.registrationStartDate() != null && activityUpdateRequest.registrationEndDate() != null) {
             DateValidator.validateStartDateAndEndDate(activityUpdateRequest.registrationStartDate(),
-                                                      activityUpdateRequest.registrationEndDate());
+                    activityUpdateRequest.registrationEndDate());
         }
 
         activity.setStartDate(activityUpdateRequest.startDate());
@@ -283,8 +285,8 @@ public class ActivityService {
     }
 
     public Activity findOneActivityByTitle(String title) {
-        Activity post = activityRepo.findOneByTitle(title);
-        if (post != null) return post;
+        Activity activity = activityRepo.findOneByTitle(title);
+        if (activity != null) return activity;
         throw new EntityNotFoundException("Activity with title " + title + " not found");
     }
 
@@ -469,13 +471,13 @@ public class ActivityService {
         String invitationLink = frontendBaseUrl + "/activities/invitations/accept/" + activity.getId() + "/" + randomUUID.toString();
 
         ActivityInvitation invitation = activityInvitationRepo.save(ActivityInvitation.builder()
-                                                                            .activityInvitationId(activityInvitationId)
-                                                                            .activity(activity)
-                                                                            .user(user)
-                                                                            .status(InvitationStatus.PENDING.toString())
-                                                                            .invitationLink(invitationLink)
-                                                                            .expired(false)
-                                                                            .build());
+                .activityInvitationId(activityInvitationId)
+                .activity(activity)
+                .user(user)
+                .status(InvitationStatus.PENDING.toString())
+                .invitationLink(invitationLink)
+                .expired(false)
+                .build());
 
         // Send email to the user
         String emailSubject = "[BKSims] Invitation to an activity";
@@ -495,8 +497,8 @@ public class ActivityService {
 
         if (invitation == null) {
             return new AcceptInvitationResponse(400,
-                                                "Invitation not found",
-                                                "/activities/invitations/invalid-invitation");
+                    "Invitation not found",
+                    "/activities/invitations/invalid-invitation");
         }
 
         Activity activity = invitation.getActivity();
@@ -504,21 +506,21 @@ public class ActivityService {
 
         if (activity == null) {
             return new AcceptInvitationResponse(400,
-                                                "Cannot find activity that you are invited to",
-                                                "/activities/invitations/invalid-invitation");
+                    "Cannot find activity that you are invited to",
+                    "/activities/invitations/invalid-invitation");
         }
 
         if (user == null) {
             return new AcceptInvitationResponse(400,
-                                                "Cannot find user of the invitation",
-                                                "/activities/invitations/invalid-invitation");
+                    "Cannot find user of the invitation",
+                    "/activities/invitations/invalid-invitation");
         }
 
 
         if (Objects.equals(invitation.getStatus(), InvitationStatus.ACCEPTED.toString())) {
             return new AcceptInvitationResponse(400,
-                                                "Invitation with to activity " + activityInvitationId.getActivityId() + " has already been invoked",
-                                                "/activities/invitations/invalid-invitation");
+                    "Invitation with to activity " + activityInvitationId.getActivityId() + " has already been invoked",
+                    "/activities/invitations/invalid-invitation");
         }
 
         invitation.setStatus(InvitationStatus.ACCEPTED.toString());
@@ -527,16 +529,24 @@ public class ActivityService {
         addUserToActivityParticipation(user, activity);
 
         return new AcceptInvitationResponse(200, "Invitation accepted",
-                                            "/activities/" + activity.getTitle());
+                "/activities/" + activity.getTitle());
     }
 
     @Transactional
-    public Activity approveActivity(UUID activityId) {
+    public Activity approveActivity(UUID activityId, String userEmail) {
         Activity activity = activityRepo.findOneById(activityId);
 
         if (activity == null) {
             throw new EntityNotFoundException(
                     "Activity with ID " + activityId + " not found");
+        }
+
+        Optional<User> user = userRepo.findByEmail(userEmail);
+        if (user.isEmpty()) {
+            throw new EntityNotFoundException("User with email " + userEmail + " not found");
+        }
+        if (user.get().getRole() != Role.ADMIN) {
+            throw new NoPermissionException("User must be admin to approve activity");
         }
 
         if (Objects.equals(activity.getStatus(), "OPEN")) {

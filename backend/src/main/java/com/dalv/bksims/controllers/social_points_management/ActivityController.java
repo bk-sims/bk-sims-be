@@ -31,7 +31,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -41,13 +40,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Activity")
-@Controller
+@RestController
 @RequestMapping("/api/v1/activities")
 @RequiredArgsConstructor
 public class ActivityController {
@@ -102,8 +102,8 @@ public class ActivityController {
             }
             default -> {
                 Page<Activity> activitiesWithPagination = activityService.findActivityWithPagination(activitySpec,
-                                                                                                     offset, pageSize,
-                                                                                                     order, type);
+                        offset, pageSize,
+                        order, type);
                 yield new ResponseEntity<>(activitiesWithPagination, HttpStatus.OK);
             }
         };
@@ -238,15 +238,17 @@ public class ActivityController {
                 .build();
         String invitationLink = payload.get("invitationLink");
         AcceptInvitationResponse acceptInvitationResponse = activityService.acceptInvitation(activityInvitationId,
-                                                                                             invitationLink);
+                invitationLink);
         return new ResponseEntity<>(acceptInvitationResponse, HttpStatus.OK);
     }
 
     @PostMapping("/approve")
     @Secured({"ROLE_ADMIN"})
     public ResponseEntity<Activity> approveActivity(@RequestBody Map<String, String> payload) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = authentication.getName();
         UUID activityId = UUID.fromString(payload.get("activityId"));
-        Activity activity = activityService.approveActivity(activityId);
+        Activity activity = activityService.approveActivity(activityId, userEmail);
         return new ResponseEntity<>(activity, HttpStatus.OK);
     }
 

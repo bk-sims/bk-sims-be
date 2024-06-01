@@ -1,12 +1,10 @@
-package com.dalv.bksims.models.entities.user;
+package com.dalv.bksims.models.entities.course_registration;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,19 +15,17 @@ import lombok.Setter;
 import java.util.UUID;
 
 @Entity
-@Table(name = "admin")
+@Table(name = "department")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Admin {
+public class Department {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    @JsonIgnore
-    private User user;
+    @Column(unique = true)
+    private String name;
 }
