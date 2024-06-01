@@ -44,7 +44,7 @@ public class S3Service {
         log.info(bucketName, fileName, fileObj);
 
         // new file will be added in /activity_evidence folder
-        s3Client.putObject(new PutObjectRequest(bucketName, "activity_evidence/" + fileName, fileObj));
+        s3Client.putObject(new PutObjectRequest(bucketName,  "activity_evidence/" + fileName, fileObj));
         fileObj.delete();
         return fileName;
     }
