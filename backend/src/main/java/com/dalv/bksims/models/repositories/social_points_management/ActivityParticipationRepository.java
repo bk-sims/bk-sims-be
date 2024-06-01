@@ -16,7 +16,7 @@ public interface ActivityParticipationRepository extends JpaRepository<ActivityP
     @Query("SELECT ap.activity.id FROM ActivityParticipation ap WHERE ap.user.id = :userId")
     List<UUID> findActivityIdByUserId(@Param("userId") UUID userId);
 
-    @Query("Select new com.dalv.bksims.models.dtos.social_points_management.ActivityHistoryResponse(ap.user.firstName, ap.user.lastName, ap.activity.title, ap.pointsApproved) " + "FROM ActivityParticipation ap WHERE ap.user.id = :userId")
+    @Query("Select new com.dalv.bksims.models.dtos.social_points_management.ActivityHistoryResponse(ap.activity.title, ap.pointsApproved) " + "FROM ActivityParticipation ap WHERE ap.user.id = :userId")
     List<ActivityHistoryResponse> findActivityHistoryByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT new com.dalv.bksims.models.dtos.social_points_management.ParticipantResponse(ap.user, ap.pointsApproved, ap.evidenceUrl) " + "FROM ActivityParticipation ap WHERE ap.activity.title = :activityTitle")
